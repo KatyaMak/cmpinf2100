@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M07 — Pandas Reference</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #DDD8C4;
+    --sky:      #C8DDE8;
+    --stone:    #B8864E;
+    --stone-lt: #C9A87C;
+    --ivory:    #F5EFE0;
+    --text:     #2C2318;
+    --border:   #A07840;
+    --muted:    #8C7055;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 16px;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 0 0 60px 0;
+  }
+
+  /* ── header ── */
+  .masthead {
+    background: linear-gradient(160deg, #C8DDE8 0%, #B8D8E8 50%, #A8C4D8 100%);
+    border-bottom: 2px solid var(--border);
+    padding: 32px 40px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .masthead::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 0 L60 30 L30 60 L0 30Z' fill='none' stroke='%232C2318' stroke-width='0.3' opacity='0.12'/%3E%3Cpath d='M30 10 L50 30 L30 50 L10 30Z' fill='none' stroke='%232C2318' stroke-width='0.3' opacity='0.08'/%3E%3C/svg%3E");
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+  .masthead h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.9rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.04em;
+    position: relative;
+  }
+  .masthead p {
+    font-size: 1rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 6px;
+    position: relative;
+  }
+
+  /* ── tabs ── */
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    background: #C0B9A6;
+    border-bottom: 2px solid var(--border);
+    overflow-x: auto;
+    padding: 0 20px;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 1rem;
+    color: var(--muted);
+    padding: 12px 22px 9px;
+    white-space: nowrap;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    color: var(--text);
+    border-bottom-color: var(--stone);
+    font-weight: 500;
+  }
+
+  /* ── panels ── */
+  .panel { display: none; padding: 32px 40px; max-width: 860px; margin: 0 auto; }
+  .panel.active { display: block; }
+
+  /* ── section headings ── */
+  h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.2rem;
+    color: var(--stone);
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--stone-lt);
+    padding-bottom: 6px;
+    margin: 32px 0 18px;
+  }
+  h2:first-child { margin-top: 0; }
+  h3 {
+    font-family: 'EB Garamond', serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--text);
+    margin: 22px 0 8px;
+  }
+
+  /* ── cards & boxes ── */
+  .card {
+    background: var(--ivory);
+    border: 1px solid var(--stone-lt);
+    border-radius: 6px;
+    padding: 18px 22px;
+    margin: 14px 0;
+  }
+  .card.sky { background: #E6EFF5; border-color: #A8C4D4; }
+
+  /* ── code ── */
+  code {
+    background: #E8E2D2;
+    border: 1px solid #C8BEA8;
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.88em;
+    color: #4A3520;
+  }
+  pre {
+    background: #F0EAD8;
+    border: 1px solid var(--stone-lt);
+    border-left: 3px solid var(--stone);
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 12px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
+    color: #3A2510;
+    overflow-x: auto;
+    line-height: 1.7;
+  }
+
+  /* ── mini DataFrame tables ── */
+  .df-wrap {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    margin: 14px 0;
+  }
+  .df-label {
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-style: italic;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  table.df {
+    border-collapse: collapse;
+    font-family: 'Courier New', monospace;
+    font-size: 0.82rem;
+    color: var(--text);
+    background: var(--ivory);
+    border: 1px solid var(--stone-lt);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  table.df th {
+    background: var(--sky);
+    border: 1px solid #A8C4D4;
+    padding: 4px 10px;
+    font-weight: normal;
+    font-style: italic;
+    text-align: center;
+  }
+  table.df td {
+    border: 1px solid #D0C8B4;
+    padding: 4px 10px;
+    text-align: center;
+  }
+  table.df tr:nth-child(even) td { background: #EDE7D6; }
+  table.df td.key { background: #D8EAF2; font-weight: bold; }
+  table.df td.nan { color: #A08060; font-style: italic; }
+  table.df td.result { background: #D8EDE0; }
+
+  /* ── arrows ── */
+  .arrow {
+    font-size: 1.6rem;
+    color: var(--stone);
+    align-self: center;
+    padding-top: 20px;
+  }
+
+  /* ── join diagram ── */
+  .join-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin: 14px 0;
+  }
+  .join-card {
+    background: var(--ivory);
+    border: 1px solid var(--stone-lt);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .join-card h4 {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: var(--stone);
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+  }
+  .venn {
+    display: flex;
+    justify-content: center;
+    margin: 8px 0;
+  }
+
+  /* ── pill tags ── */
+  .pill {
+    display: inline-block;
+    background: var(--sky);
+    border: 1px solid #A8C4D4;
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 0.83rem;
+    color: #3A5060;
+    margin: 2px 3px;
+  }
+  .pill.stone {
+    background: #EBD9C0;
+    border-color: var(--stone-lt);
+    color: #5A3810;
+  }
+  .pill.green {
+    background: #D4EAD4;
+    border-color: #90C090;
+    color: #285028;
+  }
+
+  /* ── method table ── */
+  table.methods {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin: 12px 0;
+  }
+  table.methods th {
+    background: var(--sky);
+    border: 1px solid #A8C4D4;
+    padding: 7px 14px;
+    text-align: left;
+    font-style: italic;
+    font-weight: normal;
+  }
+  table.methods td {
+    border: 1px solid #D0C8B4;
+    padding: 7px 14px;
+    vertical-align: top;
+  }
+  table.methods tr:nth-child(even) td { background: #EDE7D6; }
+  table.methods td:first-child { font-family: 'Courier New', monospace; font-size: 0.82rem; color: #4A3520; }
+  table.methods td.note { font-style: italic; color: var(--muted); font-size: 0.85rem; }
+
+  /* ── agg diagram ── */
+  .agg-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 10px 0;
+    flex-wrap: wrap;
+  }
+  .agg-box {
+    background: var(--ivory);
+    border: 1px solid var(--stone-lt);
+    border-radius: 5px;
+    padding: 8px 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.82rem;
+    color: var(--text);
+  }
+  .agg-label {
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-style: italic;
+    text-align: center;
+    margin-top: 3px;
+  }
+
+  /* ── note callout ── */
+  .note {
+    background: #EBD9C0;
+    border-left: 3px solid var(--stone);
+    border-radius: 0 4px 4px 0;
+    padding: 10px 16px;
+    margin: 12px 0;
+    font-size: 0.92rem;
+    color: #4A3010;
+  }
+  .note strong { color: var(--stone); }
+
+  @media (max-width: 600px) {
+    .masthead { padding: 20px; }
+    .panel { padding: 20px; }
+    .join-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <h1>Module 07 — Pandas Reference</h1>
+  <p>Summarizing &amp; Manipulating Data · CMPINF2100 · Summer 2026</p>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('concat')">Concat</button>
+  <button class="tab-btn" onclick="show('merge')">Merge &amp; Join</button>
+  <button class="tab-btn" onclick="show('melt')">Reshape</button>
+  <button class="tab-btn" onclick="show('stats')">Summary Stats</button>
+  <button class="tab-btn" onclick="show('groupby')">GroupBy &amp; Agg</button>
+</div>
+
+<!-- ══════════════════ CONCAT ══════════════════ -->
+<div id="panel-concat" class="panel active">
+
+  <h2>pd.concat — Stacking DataFrames</h2>
+
+  <div class="card sky">
+    Think of it as taping DataFrames together — either stacking rows (vertical) or adding columns side by side (horizontal). No matching needed. Just alignment.
+  </div>
+
+  <h3>Vertical (default) — stack rows</h3>
+
+  <div class="df-wrap">
+    <div>
+      <div class="df-label">df_a</div>
+      <table class="df">
+        <tr><th>name</th><th>score</th></tr>
+        <tr><td>Alice</td><td>88</td></tr>
+        <tr><td>Bob</td><td>74</td></tr>
+      </table>
+    </div>
+    <div class="arrow">↓</div>
+    <div>
+      <div class="df-label">df_b</div>
+      <table class="df">
+        <tr><th>name</th><th>score</th></tr>
+        <tr><td>Carol</td><td>91</td></tr>
+        <tr><td>Dave</td><td>65</td></tr>
+      </table>
+    </div>
+    <div class="arrow">→</div>
+    <div>
+      <div class="df-label">pd.concat([df_a, df_b])</div>
+      <table class="df">
+        <tr><th>name</th><th>score</th></tr>
+        <tr><td>Alice</td><td>88</td></tr>
+        <tr><td>Bob</td><td>74</td></tr>
+        <tr><td>Carol</td><td>91</td></tr>
+        <tr><td>Dave</td><td>65</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <pre>result = pd.concat([df_a, df_b])                 # rows 0,1,0,1 — index repeats!
+result = pd.concat([df_a, df_b], ignore_index=True)  # clean 0,1,2,3</pre>
+
+  <div class="note"><strong>Watch out:</strong> indexes repeat unless you add <code>ignore_index=True</code>. Two rows both claiming to be index 0 is valid but confusing.</div>
+
+  <h3>Missing columns → NaN filled in</h3>
+
+  <div class="df-wrap">
+    <div>
+      <div class="df-label">df_a</div>
+      <table class="df">
+        <tr><th>name</th><th>score</th></tr>
+        <tr><td>Alice</td><td>88</td></tr>
+      </table>
+    </div>
+    <div class="arrow">+</div>
+    <div>
+      <div class="df-label">df_b (extra col)</div>
+      <table class="df">
+        <tr><th>name</th><th>score</th><th>grade</th></tr>
+        <tr><td>Carol</td><td>91</td><td>A</td></tr>
+      </table>
+    </div>
+    <div class="arrow">→</div>
+    <div>
+      <div class="df-label">result</div>
+      <table class="df">
+        <tr><th>name</th><th>score</th><th>grade</th></tr>
+        <tr><td>Alice</td><td>88</td><td class="nan">NaN</td></tr>
+        <tr><td>Carol</td><td>91</td><td>A</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h3>Horizontal (axis=1) — add columns</h3>
+  <pre>result = pd.concat([df_left, df_right], axis=1)  # place side by side</pre>
+  <div class="note">Aligns on index. If indexes don't match → NaN fills the gaps.</div>
+
+</div>
+
+<!-- ══════════════════ MERGE ══════════════════ -->
+<div id="panel-merge" class="panel">
+
+  <h2>pd.merge — Joining on a Key Column</h2>
+
+  <div class="card sky">
+    Unlike concat (tape it), merge <em>matches rows by value</em>. Both DataFrames need at least one column with matching values — that's the key. What you keep depends on the join type.
+  </div>
+
+  <h3>The two DataFrames we'll join</h3>
+  <div class="df-wrap">
+    <div>
+      <div class="df-label">sidewalk_quality</div>
+      <table class="df">
+        <tr><th>street</th><th>condition</th></tr>
+        <tr><td class="key">Elm</td><td>Good</td></tr>
+        <tr><td class="key">Oak</td><td>Fair</td></tr>
+        <tr><td class="key">Pine</td><td>Poor</td></tr>
+      </table>
+    </div>
+    <div>
+      <div class="df-label">street_info</div>
+      <table class="df">
+        <tr><th>street</th><th>length_km</th></tr>
+        <tr><td class="key">Elm</td><td>1.2</td></tr>
+        <tr><td class="key">Oak</td><td>0.8</td></tr>
+        <tr><td class="key">Maple</td><td>2.1</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="note"><strong>Key column:</strong> <code>street</code> — exists in both, same dtype. Pine is only on the left. Maple is only on the right.</div>
+
+  <div class="join-grid">
+
+    <div class="join-card">
+      <h4>Inner Join — default</h4>
+      <svg class="venn" viewBox="0 0 120 60" width="120" height="60">
+        <circle cx="40" cy="30" r="26" fill="#C8DDE8" fill-opacity="0.5" stroke="#7AAABB" stroke-width="1.5"/>
+        <circle cx="80" cy="30" r="26" fill="#EBD9C0" fill-opacity="0.5" stroke="#C9A87C" stroke-width="1.5"/>
+        <path d="M60 8 A26 26 0 0 1 60 52 A26 26 0 0 1 60 8" fill="#A8D0A0" fill-opacity="0.7"/>
+        <text x="60" y="34" text-anchor="middle" font-size="8" fill="#285028">keep</text>
+      </svg>
+      <p style="font-size:0.88rem">Keys in <em>both</em> → Elm, Oak</p>
+      <pre style="margin-top:8px">pd.merge(sq, si, on='street')
+# or: how='inner' (default)</pre>
+      <table class="df" style="margin-top:10px">
+        <tr><th>street</th><th>condition</th><th>length_km</th></tr>
+        <tr><td class="result">Elm</td><td class="result">Good</td><td class="result">1.2</td></tr>
+        <tr><td class="result">Oak</td><td class="result">Fair</td><td class="result">0.8</td></tr>
+      </table>
+    </div>
+
+    <div class="join-card">
+      <h4>Left Join</h4>
+      <svg class="venn" viewBox="0 0 120 60" width="120" height="60">
+        <circle cx="40" cy="30" r="26" fill="#A8D0A0" fill-opacity="0.7" stroke="#60A060" stroke-width="1.5"/>
+        <circle cx="80" cy="30" r="26" fill="#EBD9C0" fill-opacity="0.4" stroke="#C9A87C" stroke-width="1.5"/>
+        <text x="30" y="34" text-anchor="middle" font-size="8" fill="#285028">keep</text>
+      </svg>
+      <p style="font-size:0.88rem">All left keys → Elm, Oak, Pine</p>
+      <pre style="margin-top:8px">pd.merge(sq, si, on='street',
+         how='left')</pre>
+      <table class="df" style="margin-top:10px">
+        <tr><th>street</th><th>condition</th><th>length_km</th></tr>
+        <tr><td class="result">Elm</td><td class="result">Good</td><td class="result">1.2</td></tr>
+        <tr><td class="result">Oak</td><td class="result">Fair</td><td class="result">0.8</td></tr>
+        <tr><td class="result">Pine</td><td class="result">Poor</td><td class="nan">NaN</td></tr>
+      </table>
+    </div>
+
+    <div class="join-card">
+      <h4>Right Join</h4>
+      <svg class="venn" viewBox="0 0 120 60" width="120" height="60">
+        <circle cx="40" cy="30" r="26" fill="#C8DDE8" fill-opacity="0.4" stroke="#7AAABB" stroke-width="1.5"/>
+        <circle cx="80" cy="30" r="26" fill="#A8D0A0" fill-opacity="0.7" stroke="#60A060" stroke-width="1.5"/>
+        <text x="90" y="34" text-anchor="middle" font-size="8" fill="#285028">keep</text>
+      </svg>
+      <p style="font-size:0.88rem">All right keys → Elm, Oak, Maple</p>
+      <pre style="margin-top:8px">pd.merge(sq, si, on='street',
+         how='right')</pre>
+      <table class="df" style="margin-top:10px">
+        <tr><th>street</th><th>condition</th><th>length_km</th></tr>
+        <tr><td class="result">Elm</td><td class="result">Good</td><td class="result">1.2</td></tr>
+        <tr><td class="result">Oak</td><td class="result">Fair</td><td class="result">0.8</td></tr>
+        <tr><td class="result">Maple</td><td class="nan">NaN</td><td class="result">2.1</td></tr>
+      </table>
+    </div>
+
+    <div class="join-card">
+      <h4>Outer Join</h4>
+      <svg class="venn" viewBox="0 0 120 60" width="120" height="60">
+        <circle cx="40" cy="30" r="26" fill="#A8D0A0" fill-opacity="0.6" stroke="#60A060" stroke-width="1.5"/>
+        <circle cx="80" cy="30" r="26" fill="#A8D0A0" fill-opacity="0.6" stroke="#60A060" stroke-width="1.5"/>
+        <text x="60" y="34" text-anchor="middle" font-size="8" fill="#285028">all</text>
+      </svg>
+      <p style="font-size:0.88rem">Everything → Elm, Oak, Pine, Maple</p>
+      <pre style="margin-top:8px">pd.merge(sq, si, on='street',
+         how='outer')</pre>
+      <table class="df" style="margin-top:10px">
+        <tr><th>street</th><th>condition</th><th>length_km</th></tr>
+        <tr><td class="result">Elm</td><td class="result">Good</td><td class="result">1.2</td></tr>
+        <tr><td class="result">Oak</td><td class="result">Fair</td><td class="result">0.8</td></tr>
+        <tr><td class="result">Pine</td><td class="result">Poor</td><td class="nan">NaN</td></tr>
+        <tr><td class="result">Maple</td><td class="nan">NaN</td><td class="result">2.1</td></tr>
+      </table>
+    </div>
+
+  </div>
+
+  <h3>Two things both need to be true</h3>
+  <div class="card">
+    <span class="pill green">✓ matching values</span> — "Elm" appears in both DataFrames, so it can be joined<br><br>
+    <span class="pill green">✓ matching dtypes</span> — both key columns need same type (both str, or both int)<br><br>
+    <span style="font-size:0.9rem">One can fail without the other:<br>
+    • Same dtype, no matching values → merge runs but returns <em>empty</em> DataFrame<br>
+    • Matching values but different dtypes → merge may silently miss matches</span>
+  </div>
+
+
+</div>
+
+<!-- ══════════════════ MELT ══════════════════ -->
+<div id="panel-melt" class="panel">
+
+  <h2>melt() — Wide → Long Reshape</h2>
+
+  <div class="card sky">
+    <strong>Wide:</strong> one column per variable, one row per observation.<br>
+    <strong>Long:</strong> two columns — <em>variable</em> (name) and <em>value</em> — one row per measurement.<br>
+    Seaborn and many stats functions want long format.
+  </div>
+
+  <h3>Before and after</h3>
+
+  <div class="df-wrap">
+    <div>
+      <div class="df-label">Wide (original)</div>
+      <table class="df">
+        <tr><th>penguin_id</th><th>species</th><th>bill_mm</th><th>flipper_mm</th><th>mass_g</th></tr>
+        <tr><td>0</td><td>Adelie</td><td>39.1</td><td>181</td><td>3750</td></tr>
+        <tr><td>1</td><td>Adelie</td><td>39.5</td><td>186</td><td>3800</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div style="text-align:center; font-size:1.6rem; color:var(--stone); margin: 10px 0;">↓ melt ↓</div>
+
+  <div class="df-wrap">
+    <div>
+      <div class="df-label">Long (melted) — each measurement is its own row</div>
+      <table class="df">
+        <tr><th>penguin_id</th><th>species</th><th>variable</th><th>value</th></tr>
+        <tr><td>0</td><td>Adelie</td><td class="key">bill_mm</td><td>39.1</td></tr>
+        <tr><td>0</td><td>Adelie</td><td class="key">flipper_mm</td><td>181</td></tr>
+        <tr><td>0</td><td>Adelie</td><td class="key">mass_g</td><td>3750</td></tr>
+        <tr><td>1</td><td>Adelie</td><td class="key">bill_mm</td><td>39.5</td></tr>
+        <tr><td>1</td><td>Adelie</td><td class="key">flipper_mm</td><td>186</td></tr>
+        <tr><td>1</td><td>Adelie</td><td class="key">mass_g</td><td>3800</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <pre>penguins_long = penguins.melt(
+    id_vars=['penguin_id', 'species']   # columns that stay as identifiers
+)
+# bill_mm, flipper_mm, mass_g → stacked into 'variable' + 'value'</pre>
+
+  <h3>The decision: what are id_vars?</h3>
+  <div class="card">
+    <strong>id_vars</strong> = columns that <em>identify the thing being measured</em> — they should not get stacked.<br><br>
+    Everything else becomes a row: each original column name goes into <code>variable</code>, the cell value goes into <code>value</code>.<br><br>
+    Penguin 0 was one row → becomes 3 rows (one per measurement). 2 penguins × 3 measurements = 6 rows.
+  </div>
+
+  <div class="note"><strong>Why long?</strong> Seaborn's <code>hue=</code> parameter expects one column for color. In wide format, measurements are in separate columns and can't be hued together. In long format, all measurements are in one <code>value</code> column and the <code>variable</code> column tells seaborn what to color.</div>
+
+</div>
+
+<!-- ══════════════════ STATS ══════════════════ -->
+<div id="panel-stats" class="panel">
+
+  <h2>Summary Statistics</h2>
+
+  <h3>Single column (Series methods)</h3>
+  <table class="methods">
+    <tr><th>Method</th><th>Returns</th><th>Notes</th></tr>
+    <tr><td>s.mean()</td><td>average</td><td></td></tr>
+    <tr><td>s.min() / s.max()</td><td>smallest / largest</td><td></td></tr>
+    <tr><td>s.std()</td><td>standard deviation</td><td></td></tr>
+    <tr><td>s.nunique()</td><td>count of distinct values</td><td class="note">small → probably categorical</td></tr>
+    <tr><td>s.unique()</td><td>array of distinct values</td><td class="note">returns the actual values</td></tr>
+    <tr><td>s.value_counts()</td><td>frequency table</td><td class="note">add dropna=False to see NaN</td></tr>
+  </table>
+
+  <h3>Whole DataFrame</h3>
+  <table class="methods">
+    <tr><th>Method</th><th>What it tells you</th></tr>
+    <tr><td>df.info()</td><td>Overview: rows, columns, types, non-null counts</td></tr>
+    <tr><td>df.describe()</td><td>Numeric cols: mean, std, min, max, quartiles</td></tr>
+    <tr><td>df.describe(include='object')</td><td>String cols: count, unique, top, freq</td></tr>
+    <tr><td>df.describe(include='all')</td><td>Everything at once</td></tr>
+    <tr><td>df.dtypes</td><td>Column types</td></tr>
+    <tr><td>df.columns</td><td>Column names only</td></tr>
+    <tr><td>df.nunique()</td><td>Count of distinct values per column</td></tr>
+    <tr><td>df.isna().sum()</td><td>Missing count per column</td></tr>
+    <tr><td>df.isna().mean()</td><td>Missing proportion per column (0.25 = 25%)</td></tr>
+  </table>
+
+  <h3>numeric_only vs select_dtypes — two paths, same destination</h3>
+  <div class="df-wrap" style="gap:14px">
+    <div class="card" style="flex:1; min-width:200px">
+      <code>df.mean(numeric_only=True)</code>
+      <p style="margin-top:8px; font-size:0.9rem">One-time instruction to <em>that method</em>. Ignore strings, just run.</p>
+      <p style="margin-top:6px; font-size:0.85rem; font-style:italic; color:var(--muted)">Best for: one quick stat</p>
+    </div>
+    <div class="arrow" style="padding-top:0; align-self:center">vs</div>
+    <div class="card" style="flex:1; min-width:200px">
+      <code>df.select_dtypes('number').mean()</code>
+      <p style="margin-top:8px; font-size:0.9rem">Filters the DataFrame first → gives you a reusable numeric-only DataFrame.</p>
+      <p style="margin-top:6px; font-size:0.85rem; font-style:italic; color:var(--muted)">Best for: using numeric cols repeatedly</p>
+    </div>
+  </div>
+
+  <h3>map() vs apply()</h3>
+  <div class="card">
+    <code>.map()</code> — one cell in, one cell out. Best for transforming a single column by a dictionary or simple function.<br><br>
+    <code>.apply()</code> — sees an entire row (axis=1) or column at once. Use when the result depends on multiple values.
+  </div>
+
+  <h3>Missing values — dropna()</h3>
+  <pre>df.dropna()                    # drop any row with ANY NaN
+df.dropna(how='all')           # drop row only if ALL values are NaN
+df.dropna(subset=['race_2'])   # drop only if this specific column is NaN
+df.dropna(axis=1)              # drop columns instead of rows</pre>
+  <div class="note">Remember: <code>dropna()</code> is a method on the DataFrame — it's <code>df.dropna()</code>, not <code>pd.dropna(df)</code>.</div>
+
+</div>
+
+<!-- ══════════════════ GROUPBY ══════════════════ -->
+<div id="panel-groupby" class="panel">
+
+  <h2>GroupBy &amp; Aggregation — Split → Apply → Combine</h2>
+
+  <div class="card sky">
+    groupby asks: "what is true <em>within each group</em>?" It splits the DataFrame by category, runs a function inside each group, and combines the results back into one table.
+  </div>
+
+  <h3>The split-apply-combine picture</h3>
+
+  <div class="df-wrap" style="align-items:flex-start">
+    <div>
+      <div class="df-label">Original df</div>
+      <table class="df">
+        <tr><th>E</th><th>B</th></tr>
+        <tr><td class="key">X</td><td>10</td></tr>
+        <tr><td class="key">Y</td><td>20</td></tr>
+        <tr><td class="key">X</td><td>30</td></tr>
+        <tr><td class="key">Y</td><td>40</td></tr>
+        <tr><td class="key">X</td><td>50</td></tr>
+      </table>
+    </div>
+    <div class="arrow">→<br><span style="font-size:0.75rem;color:var(--muted)">groupby('E')</span></div>
+    <div>
+      <div class="df-label">Group X</div>
+      <table class="df">
+        <tr><th>B</th></tr>
+        <tr><td>10</td></tr>
+        <tr><td>30</td></tr>
+        <tr><td>50</td></tr>
+      </table>
+      <div style="margin-top:6px">
+      <div class="df-label">Group Y</div>
+      <table class="df">
+        <tr><th>B</th></tr>
+        <tr><td>20</td></tr>
+        <tr><td>40</td></tr>
+      </table>
+      </div>
+    </div>
+    <div class="arrow">→<br><span style="font-size:0.75rem;color:var(--muted)">.mean()</span></div>
+    <div>
+      <div class="df-label">Result</div>
+      <table class="df">
+        <tr><th>E</th><th>B</th></tr>
+        <tr><td class="result">X</td><td class="result">30.0</td></tr>
+        <tr><td class="result">Y</td><td class="result">30.0</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <pre>df.groupby("E")['B'].mean()               # mean of B per group
+df.groupby("E", dropna=False)['B'].mean()  # include NaN as a group</pre>
+
+  <h3>size vs count — don't mix them up</h3>
+  <div class="card">
+    <code>.size()</code> — rows per group, including NaN<br>
+    <code>.count()</code> — non-NaN values per group<br><br>
+    <span style="font-size:0.9rem">If your data has missing values, these will differ. <code>count</code> silently skips NaN rows — use <code>size</code> if you want the true group total.</span>
+  </div>
+
+  <h3>.agg() — multiple functions at once</h3>
+
+  <pre># Simple: same functions on multiple columns
+df.groupby("E")[['B', 'C']].agg(['mean', 'std'])
+
+# Named aggregation: one output column per line
+df.groupby("E").agg(
+    B_avg  = ('B', 'mean'),   # output_name = (source_col, action)
+    B_spread = ('B', 'std'),
+    C_total  = ('C', 'sum')
+)</pre>
+
+  <div class="card">
+    <strong>The rule inside .agg():</strong> <code>output_name = (source_column, action)</code><br><br>
+    Always a tuple, always two things: <em>which column</em> and <em>what to do</em>. The output name is whatever you want.
+  </div>
+
+  <h3>String shortcuts inside agg</h3>
+  <table class="methods">
+    <tr><th>String</th><th>What it does</th></tr>
+    <tr><td>'mean'</td><td>average (ignores NaN)</td></tr>
+    <tr><td>'std'</td><td>standard deviation</td></tr>
+    <tr><td>'count'</td><td>non-NaN values</td></tr>
+    <tr><td>'size'</td><td>all rows including NaN</td></tr>
+    <tr><td>'sum'</td><td>total</td></tr>
+    <tr><td>'min' / 'max'</td><td>smallest / largest</td></tr>
+  </table>
+
+  <h3>Multi-column groupby</h3>
+  <pre>df.groupby(["E", "F"], dropna=False)["B"].mean().reset_index()
+# groups by E AND F together → subgroup summaries
+# reset_index() turns group keys back into regular columns (not index)</pre>
+
+  <div class="note"><strong>reset_index() after groupby:</strong> group keys become the index after aggregation. They look fine when printed, but break when you try to plot, filter, or merge on them. <code>reset_index()</code> rescues them into normal columns.</div>
+
+</div>
+
+<script>
+  function show(tab) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    event.target.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+
+</body>
+</html>
