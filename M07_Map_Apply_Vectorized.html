@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M08 — map · apply · vectorized</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #DDD8C4;
+    --sky:      #C8DDE8;
+    --stone:    #B8864E;
+    --stone-lt: #C9A87C;
+    --ivory:    #F5EFE0;
+    --text:     #2C2318;
+    --border:   #A07840;
+    --muted:    #8C7055;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 16px;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 0 0 60px 0;
+  }
+
+  /* ── header ── */
+  .masthead {
+    background: linear-gradient(160deg, #C8DDE8 0%, #B8D8E8 50%, #A8C4D8 100%);
+    border-bottom: 2px solid var(--border);
+    padding: 32px 40px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .masthead::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 0 L60 30 L30 60 L0 30Z' fill='none' stroke='%232C2318' stroke-width='0.3' opacity='0.12'/%3E%3Cpath d='M30 10 L50 30 L30 50 L10 30Z' fill='none' stroke='%232C2318' stroke-width='0.3' opacity='0.08'/%3E%3C/svg%3E");
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+  .masthead h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.9rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.04em;
+    position: relative;
+  }
+  .masthead p {
+    font-size: 1rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 6px;
+    position: relative;
+  }
+
+  /* ── tabs ── */
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    background: #C0B9A6;
+    border-bottom: 2px solid var(--border);
+    overflow-x: auto;
+    padding: 0 20px;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 1rem;
+    color: var(--muted);
+    padding: 12px 22px 9px;
+    white-space: nowrap;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    color: var(--text);
+    border-bottom-color: var(--stone);
+    font-weight: 500;
+  }
+
+  /* ── panels ── */
+  .panel { display: none; padding: 32px 40px; max-width: 900px; margin: 0 auto; }
+  .panel.active { display: block; }
+
+  /* ── headings ── */
+  h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.2rem;
+    color: var(--stone);
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--stone-lt);
+    padding-bottom: 6px;
+    margin: 32px 0 18px;
+  }
+  h2:first-child { margin-top: 0; }
+  h3 {
+    font-family: 'EB Garamond', serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--text);
+    margin: 22px 0 8px;
+  }
+
+  /* ── cards ── */
+  .card {
+    background: var(--ivory);
+    border: 1px solid var(--stone-lt);
+    border-radius: 6px;
+    padding: 18px 22px;
+    margin: 14px 0;
+  }
+  .card.sky { background: #E6EFF5; border-color: #A8C4D4; }
+
+  /* ── note ── */
+  .note {
+    background: #EBD9C0;
+    border-left: 3px solid var(--stone);
+    border-radius: 0 4px 4px 0;
+    padding: 10px 16px;
+    margin: 12px 0;
+    font-size: 0.92rem;
+    color: #4A3010;
+  }
+  .note strong { color: var(--stone); }
+
+  /* ── code ── */
+  code {
+    background: #E8E2D2;
+    border: 1px solid #C8BEA8;
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.88em;
+    color: #4A3520;
+  }
+  pre {
+    background: #F0EAD8;
+    border: 1px solid var(--stone-lt);
+    border-left: 3px solid var(--stone);
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 12px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
+    color: #3A2510;
+    overflow-x: auto;
+    line-height: 1.7;
+  }
+
+  /* ── pills ── */
+  .pill {
+    display: inline-block;
+    background: var(--sky);
+    border: 1px solid #A8C4D4;
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 0.83rem;
+    color: #3A5060;
+    margin: 2px 3px;
+  }
+  .pill.stone { background: #EBD9C0; border-color: var(--stone-lt); color: #5A3810; }
+  .pill.green { background: #D4EAD4; border-color: #90C090; color: #285028; }
+  .pill.red   { background: #F0DDD8; border-color: #C09090; color: #602828; }
+
+  /* ── method table ── */
+  table.methods {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin: 12px 0;
+  }
+  table.methods th {
+    background: var(--sky);
+    border: 1px solid #A8C4D4;
+    padding: 7px 14px;
+    text-align: left;
+    font-style: italic;
+    font-weight: normal;
+  }
+  table.methods td {
+    border: 1px solid #D0C8B4;
+    padding: 7px 14px;
+    vertical-align: top;
+  }
+  table.methods tr:nth-child(even) td { background: #EDE7D6; }
+  table.methods td:first-child { font-family: 'Courier New', monospace; font-size: 0.82rem; color: #4A3520; }
+  table.methods td.note { font-style: italic; color: var(--muted); font-size: 0.85rem; }
+  table.methods td.yes { color: #285028; font-weight: 600; }
+  table.methods td.no  { color: #602828; font-weight: 600; }
+  table.methods td.mid { color: #5A4010; font-weight: 600; }
+
+  /* ── stack diagram ── */
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 18px 0;
+  }
+  .stack-layer {
+    padding: 14px 20px;
+    border: 1px solid var(--stone-lt);
+    position: relative;
+  }
+  .stack-layer:first-child { border-radius: 6px 6px 0 0; }
+  .stack-layer:last-child  { border-radius: 0 0 6px 6px; }
+  .stack-layer .layer-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    color: var(--stone);
+    margin-bottom: 3px;
+  }
+  .stack-layer .layer-desc {
+    font-size: 0.9rem;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .stack-layer.l-python  { background: #E6EFF5; border-color: #8AAABB; }
+  .stack-layer.l-pandas  { background: #EBE4F5; border-color: #A890C0; }
+  .stack-layer.l-numpy   { background: #E8EFE0; border-color: #90A870; }
+  .stack-layer.l-c       { background: #F0EAD8; border-color: var(--stone-lt); }
+  .stack-layer.l-machine { background: #2C2318; border-color: #1A1410; }
+  .stack-layer.l-machine .layer-name { color: #C9A87C; }
+  .stack-layer.l-machine .layer-desc { color: #8C7055; }
+  .stack-arrow {
+    text-align: center;
+    font-size: 1.1rem;
+    color: var(--stone);
+    line-height: 1;
+    margin: 0;
+    padding: 2px 0;
+    background: transparent;
+  }
+
+  /* ── trip diagram (bounce animation) ── */
+  .trip-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 16px 0;
+  }
+  .trip-box {
+    background: var(--ivory);
+    border: 1px solid var(--stone-lt);
+    border-radius: 6px;
+    padding: 16px;
+  }
+  .trip-box h4 {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: var(--stone);
+    letter-spacing: 0.04em;
+    margin-bottom: 12px;
+  }
+
+  /* ── SVG bounce diagrams ── */
+  .svg-wrap { display: flex; justify-content: center; margin: 8px 0; }
+
+  /* ── data structure grid ── */
+  .struct-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 14px 0;
+  }
+  .struct-card {
+    background: var(--ivory);
+    border: 1px solid var(--stone-lt);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .struct-card h4 {
+    font-family: 'Cinzel', serif;
+    font-size: 0.82rem;
+    color: var(--stone);
+    letter-spacing: 0.04em;
+    margin-bottom: 10px;
+  }
+
+  /* ── df tables ── */
+  .df-wrap { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; margin: 12px 0; }
+  .df-label { font-size: 0.82rem; color: var(--muted); font-style: italic; text-align: center; margin-bottom: 4px; }
+  table.df {
+    border-collapse: collapse;
+    font-family: 'Courier New', monospace;
+    font-size: 0.82rem;
+    color: var(--text);
+    background: var(--ivory);
+    border: 1px solid var(--stone-lt);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  table.df th { background: var(--sky); border: 1px solid #A8C4D4; padding: 4px 10px; font-weight: normal; font-style: italic; text-align: center; }
+  table.df td { border: 1px solid #D0C8B4; padding: 4px 10px; text-align: center; }
+  table.df tr:nth-child(even) td { background: #EDE7D6; }
+  table.df td.key    { background: #D8EAF2; font-weight: bold; }
+  table.df td.result { background: #D8EDE0; }
+  table.df td.ptr    { background: #EBE4F5; color: #5A3880; font-style: italic; }
+
+  .arrow { font-size: 1.4rem; color: var(--stone); align-self: center; padding-top: 16px; }
+
+  @media (max-width: 620px) {
+    .masthead { padding: 20px; }
+    .panel { padding: 20px; }
+    .trip-grid { grid-template-columns: 1fr; }
+    .struct-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <h1>Module 07 — map · apply · vectorized</h1>
+  <p>The Stack, the Loop, the Library · CMPINF2100 · Summer 2026</p>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('stack')">The Stack</button>
+  <button class="tab-btn" onclick="show('tools')">map vs apply</button>
+  <button class="tab-btn" onclick="show('trips')">Trip Cost</button>
+  <button class="tab-btn" onclick="show('data')">Data Structure</button>
+  <button class="tab-btn" onclick="show('when')">When to Use</button>
+</div>
+
+
+<!-- ══════════════════ THE STACK ══════════════════ -->
+<div id="panel-stack" class="panel active">
+
+  <h2>The Execution Stack</h2>
+
+  <div class="card sky">
+    Every line of Python code you write travels down this stack before anything actually computes. The question is: <em>how far down does it go, and how many times?</em>
+  </div>
+
+  <div class="stack">
+    <div class="stack-layer l-python">
+      <div class="layer-name">Python</div>
+      <div class="layer-desc">Where you write code. Where <code>map()</code> and pandas <code>.apply()</code> live and loop.</div>
+    </div>
+    <div class="stack-arrow">↓</div>
+    <div class="stack-layer l-pandas">
+      <div class="layer-name">Pandas</div>
+      <div class="layer-desc">Sits on top of NumPy. Adds DataFrames, Series, indexes. <code>.apply()</code> belongs here.</div>
+    </div>
+    <div class="stack-arrow">↓</div>
+    <div class="stack-layer l-numpy">
+      <div class="layer-name">NumPy</div>
+      <div class="layer-desc">Array engine. Vectorized operations start here — they don't loop in Python, they hand off immediately.</div>
+    </div>
+    <div class="stack-arrow">↓</div>
+    <div class="stack-layer l-c">
+      <div class="layer-name">Compiled C</div>
+      <div class="layer-desc">Pre-compiled, optimized loops. NumPy passes entire arrays here. No Python overhead.</div>
+    </div>
+    <div class="stack-arrow">↓</div>
+    <div class="stack-layer l-machine">
+      <div class="layer-name">Machine Code + RAM</div>
+      <div class="layer-desc">Zeros and ones. Where computation actually happens on the processor. Everything reaches here eventually.</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Key insight:</strong> All three approaches — <code>map</code>, <code>apply</code>, vectorized — eventually reach machine code. 
+    The difference is <em>how many times</em> they make the trip, and <em>which level does the looping</em>.
+  </div>
+
+  <h3>What lives at each level</h3>
+  <table class="methods">
+    <tr><th>Layer</th><th>What lives here</th><th>Who loops here</th></tr>
+    <tr><td>Python</td><td>your code, <code>map()</code>, for loops</td><td class="no">Python — slow</td></tr>
+    <tr><td>Pandas</td><td><code>.apply()</code>, <code>.map()</code> on Series</td><td class="no">Python — slow</td></tr>
+    <tr><td>NumPy</td><td>arrays, vectorized ops like <code>arr * 2</code></td><td class="yes">C — fast</td></tr>
+    <tr><td>C</td><td>compiled NumPy internals</td><td class="yes">C — fast</td></tr>
+    <tr><td>Machine</td><td>actual computation, RAM</td><td class="mid">always here</td></tr>
+  </table>
+
+</div>
+
+
+<!-- ══════════════════ MAP VS APPLY ══════════════════ -->
+<div id="panel-tools" class="panel">
+
+  <h2>map vs apply — Same Pattern, Different Worlds</h2>
+
+  <div class="card sky">
+    Map vs Apply — they share a pattern — <em>apply a function to elements</em> — but they belong to completely different layers of the stack and work on different data structures.
+  </div>
+
+  <div class="struct-grid">
+
+    <div class="struct-card">
+      <h4>Python's map()</h4>
+      <div class="pill">Built-in Python</div>
+      <div style="margin-top: 12px; font-size: 0.93rem;">
+        Works on any <strong>iterable</strong>: lists, tuples, anything Python can loop over.<br><br>
+        Applies a function to each element. Returns a lazy iterator — nothing runs until you consume it.
+      </div>
+      <pre style="margin-top: 12px;">nums = [1, 2, 3, 4]
+result = map(lambda x: x * 2, nums)
+list(result)  # → [2, 4, 6, 8]</pre>
+      <div style="font-size: 0.88rem; color: var(--muted); font-style: italic; margin-top: 8px;">
+        Loops in Python. Each item: Python → C → machine → back up.
+      </div>
+    </div>
+
+    <div class="struct-card">
+      <h4>Pandas .apply()</h4>
+      <div class="pill stone">Pandas only</div>
+      <div style="margin-top: 12px; font-size: 0.93rem;">
+        Works on <strong>Series</strong> (one column) or <strong>DataFrame</strong> (rows or columns via <code>axis=</code>).<br><br>
+        Applies a function across a pandas structure that sits on top of NumPy arrays.
+      </div>
+      <pre style="margin-top: 12px;">df['col'].apply(lambda x: x * 2)
+# or across rows:
+df.apply(lambda row: row['a'] + row['b'],
+         axis=1)</pre>
+      <div style="font-size: 0.88rem; color: var(--muted); font-style: italic; margin-top: 8px;">
+        Still loops in Python. Same bouncing, same cost.
+      </div>
+    </div>
+
+  </div>
+
+  <h3>The crucial difference</h3>
+  <table class="methods">
+    <tr><th></th><th>map()</th><th>.apply()</th></tr>
+    <tr><td>Belongs to</td><td>Python built-in</td><td>Pandas library</td></tr>
+    <tr><td>Works on</td><td>any iterable (list, tuple…)</td><td>Series or DataFrame only</td></tr>
+    <tr><td>Looping happens at</td><td class="no">Python level</td><td class="no">Python level</td></tr>
+    <tr><td>Knows about DataFrame structure</td><td class="no">No</td><td class="yes">Yes (rows, columns, axis)</td></tr>
+    <tr><td>Speed</td><td class="mid">Slow at scale</td><td class="mid">Slow at scale</td></tr>
+  </table>
+
+  <div class="note">
+    <strong>Why they look like twins in your notebook:</strong> both iterate element-by-element and apply a function. 
+    But <code>map</code> is pure Python asking "loop through this list." 
+    <code>apply</code> is pandas asking "loop through my DataFrame rows or columns." 
+    Different structures, different levels — same kind of Python-level loop underneath.
+  </div>
+
+  <h3>Wait — there are two things called <code>.map()</code></h3>
+
+  <div class="card" style="border-left: 3px solid #A890C0; background: #F0EBF8;">
+    <strong style="color: #5A3880;">Naming collision.</strong> Python has a built-in <code>map()</code>. Pandas has its own <code>.map()</code> method on a Series. Same name — completely different things.
+  </div>
+
+  <div class="struct-grid" style="margin-top: 14px;">
+    <div class="struct-card">
+      <h4>Python's built-in map()</h4>
+      <div class="pill">Built-in Python</div>
+      <div style="margin-top: 10px; font-size: 0.92rem;">
+        A standalone function. Works on <em>any</em> iterable — lists, tuples, generators.
+        Has nothing to do with pandas.
+      </div>
+      <pre style="margin-top: 10px;">nums = [1, 2, 3]
+list(map(lambda x: x * 2, nums))
+# → [2, 4, 6]
+# Pure Python. No DataFrame involved.</pre>
+      <div style="font-size: 0.85rem; color: var(--muted); font-style: italic; margin-top: 6px;">
+        You call it as <code>map(function, iterable)</code>
+      </div>
+    </div>
+
+    <div class="struct-card">
+      <h4>Series.map() — pandas method</h4>
+      <div class="pill stone">Pandas only</div>
+      <div style="margin-top: 10px; font-size: 0.92rem;">
+        A method that lives <em>on a pandas Series</em>. Only works on a single column.
+        Can take a function, a dictionary, or another Series as input.
+      </div>
+      <pre style="margin-top: 10px;">df_2["Team_with_acronym"] = df_2.Team.map(append_abbreviation)
+# df_2.Team is a Series
+# .map() belongs to that Series
+# Applies append_abbreviation to each element</pre>
+      <div style="font-size: 0.85rem; color: var(--muted); font-style: italic; margin-top: 6px;">
+        You call it as <code>series.map(function)</code> — dot notation, on the column
+      </div>
+    </div>
+  </div>
+
+  <table class="methods" style="margin-top: 14px;">
+    <tr><th></th><th>Python's map()</th><th>Series.map()</th></tr>
+    <tr><td>Where it lives</td><td>Python built-in</td><td>pandas Series method</td></tr>
+    <tr><td>How you call it</td><td><code>map(fn, iterable)</code></td><td><code>series.map(fn)</code></td></tr>
+    <tr><td>Works on</td><td>any iterable</td><td>one pandas column only</td></tr>
+    <tr><td>Accepts dictionary?</td><td class="no">No</td><td class="yes">Yes — maps values by lookup</td></tr>
+    <tr><td>Looping level</td><td class="no">Python</td><td class="no">Python</td></tr>
+  </table>
+
+  <div class="note">
+    <strong>In your lab:</strong> <code>df_2.Team.map(append_abbreviation)</code> — this is <em>pandas</em> <code>.map()</code>, not Python's <code>map()</code>.
+    <code>df_2.Team</code> is a Series, and <code>.map()</code> is a method on that Series.
+    The fact that both are called "map" is genuinely confusing. The key: if you see dot notation on a column — <code>series.map()</code> — it's pandas. If you see it as a standalone function — <code>map(fn, list)</code> — it's Python.
+  </div>
+
+  <h3>And the third option: vectorized NumPy</h3>
+  <div class="card">
+    Instead of calling a function on each element, you write an operation that acts on the <em>entire array at once</em>. NumPy hands it to compiled C. No Python loop.
+    <pre style="margin-top: 10px;">import numpy as np
+arr = np.array([1, 2, 3, 4])
+result = arr * 2   # → array([2, 4, 6, 8])
+# No loop written. NumPy did it in C.</pre>
+  </div>
+
+</div>
+
+
+<!-- ══════════════════ TRIP COST ══════════════════ -->
+<div id="panel-trips" class="panel">
+
+  <h2>The Trip Cost — Up and Down the Stack</h2>
+
+  <div class="card sky">
+    Every time code moves between Python and the compiled layer, there's overhead — the cost of switching context, passing data, returning results. 
+    The number of those trips is what separates slow from fast.
+  </div>
+
+  <div class="trip-grid">
+
+    <div class="trip-box">
+      <h4>map / apply — Many Trips</h4>
+      <div class="svg-wrap">
+        <svg viewBox="0 0 160 280" width="160" height="280" xmlns="http://www.w3.org/2000/svg">
+          <!-- layers -->
+          <rect x="10" y="10"  width="140" height="34" rx="4" fill="#E6EFF5" stroke="#8AAABB" stroke-width="1.2"/>
+          <rect x="10" y="60"  width="140" height="34" rx="4" fill="#F0EAD8" stroke="#C9A87C" stroke-width="1.2"/>
+          <rect x="10" y="110" width="140" height="34" rx="4" fill="#2C2318" stroke="#1A1410" stroke-width="1.2"/>
+          <text x="80" y="31"  text-anchor="middle" font-family="Cinzel, serif" font-size="10" fill="#3A5060">Python</text>
+          <text x="80" y="81"  text-anchor="middle" font-family="Cinzel, serif" font-size="10" fill="#5A3810">C</text>
+          <text x="80" y="131" text-anchor="middle" font-family="Cinzel, serif" font-size="10" fill="#C9A87C">Machine</text>
+
+          <!-- item 1 bounce -->
+          <line x1="40" y1="44" x2="40" y2="60"  stroke="#B8864E" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <line x1="40" y1="94" x2="40" y2="110" stroke="#B8864E" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <line x1="40" y1="144" x2="40" y2="158" stroke="#90A870" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <line x1="40" y1="158" x2="40" y2="175" stroke="#90A870" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <line x1="40" y1="175" x2="40" y2="158" stroke="#8AAABB" stroke-width="1.5"/>
+          <line x1="40" y1="158" x2="40" y2="44"  stroke="#8AAABB" stroke-width="1.5"/>
+
+          <!-- item 2 bounce -->
+          <line x1="80" y1="44" x2="80" y2="60"  stroke="#B8864E" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <line x1="80" y1="94" x2="80" y2="110" stroke="#B8864E" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <line x1="80" y1="144" x2="80" y2="175" stroke="#B8864E" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <line x1="80" y1="175" x2="80" y2="44"  stroke="#8AAABB" stroke-width="1.5"/>
+
+          <!-- item 3 bounce -->
+          <line x1="120" y1="44" x2="120" y2="60"  stroke="#B8864E" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <line x1="120" y1="94" x2="120" y2="110" stroke="#B8864E" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <line x1="120" y1="144" x2="120" y2="175" stroke="#B8864E" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <line x1="120" y1="175" x2="120" y2="44"  stroke="#8AAABB" stroke-width="1.5"/>
+
+          <!-- dots at python level -->
+          <circle cx="40"  cy="44" r="4" fill="#8AAABB"/>
+          <circle cx="80"  cy="44" r="4" fill="#8AAABB"/>
+          <circle cx="120" cy="44" r="4" fill="#8AAABB"/>
+
+          <!-- labels -->
+          <text x="40"  y="200" text-anchor="middle" font-family="Courier New" font-size="9" fill="#5A3810">item 1</text>
+          <text x="80"  y="200" text-anchor="middle" font-family="Courier New" font-size="9" fill="#5A3810">item 2</text>
+          <text x="120" y="200" text-anchor="middle" font-family="Courier New" font-size="9" fill="#5A3810">item 3</text>
+
+          <text x="80" y="225" text-anchor="middle" font-family="EB Garamond, serif" font-size="10" fill="#8C7055" font-style="italic">each item = one round trip</text>
+          <text x="80" y="240" text-anchor="middle" font-family="EB Garamond, serif" font-size="10" fill="#8C7055" font-style="italic">n items = n trips</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="trip-box">
+      <h4>Vectorized NumPy — One Trip</h4>
+      <div class="svg-wrap">
+        <svg viewBox="0 0 160 280" width="160" height="280" xmlns="http://www.w3.org/2000/svg">
+          <!-- layers -->
+          <rect x="10" y="10"  width="140" height="34" rx="4" fill="#E6EFF5" stroke="#8AAABB" stroke-width="1.2"/>
+          <rect x="10" y="60"  width="140" height="34" rx="4" fill="#F0EAD8" stroke="#C9A87C" stroke-width="1.2"/>
+          <rect x="10" y="110" width="140" height="34" rx="4" fill="#2C2318" stroke="#1A1410" stroke-width="1.2"/>
+          <text x="80" y="31"  text-anchor="middle" font-family="Cinzel, serif" font-size="10" fill="#3A5060">Python</text>
+          <text x="80" y="81"  text-anchor="middle" font-family="Cinzel, serif" font-size="10" fill="#5A3810">C</text>
+          <text x="80" y="131" text-anchor="middle" font-family="Cinzel, serif" font-size="10" fill="#C9A87C">Machine</text>
+
+          <!-- one wide arrow down -->
+          <rect x="30" y="44" width="100" height="8" rx="3" fill="#B8864E" opacity="0.7"/>
+          <polygon points="80,57 65,48 95,48" fill="#B8864E" opacity="0.9"/>
+
+          <!-- bracket showing all items processed in C -->
+          <rect x="25" y="63" width="110" height="78" rx="3" fill="#D4EAD4" fill-opacity="0.4" stroke="#90C090" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="80" y="98"  text-anchor="middle" font-family="Courier New" font-size="9" fill="#285028">item 1</text>
+          <text x="80" y="110" text-anchor="middle" font-family="Courier New" font-size="9" fill="#285028">item 2</text>
+          <text x="80" y="122" text-anchor="middle" font-family="Courier New" font-size="9" fill="#285028">item 3</text>
+          <text x="80" y="134" text-anchor="middle" font-family="Courier New" font-size="9" fill="#285028">looped here in C</text>
+
+          <!-- one arrow back up -->
+          <rect x="30" y="148" width="100" height="8" rx="3" fill="#8AAABB" opacity="0.7"/>
+          <polygon points="80,145 65,154 95,154" fill="#8AAABB" opacity="0.9"/>
+
+          <text x="80" y="200" text-anchor="middle" font-family="EB Garamond, serif" font-size="10" fill="#8C7055" font-style="italic">entire array goes down once</text>
+          <text x="80" y="215" text-anchor="middle" font-family="EB Garamond, serif" font-size="10" fill="#8C7055" font-style="italic">result comes back once</text>
+          <text x="80" y="235" text-anchor="middle" font-family="EB Garamond, serif" font-size="11" fill="#285028" font-weight="600">n items = 1 trip</text>
+        </svg>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <strong>Same destination, different frequency.</strong> Both approaches reach machine code. 
+    With <code>map</code>/<code>apply</code>: Python makes the round trip for every single item. 
+    With vectorized: Python hands the whole array to C once, C does all the looping internally, returns the result.
+  </div>
+
+  <h3>Why this matters at scale</h3>
+  <table class="methods">
+    <tr><th>Data size</th><th>map / apply trips</th><th>Vectorized trips</th><th>Speed difference</th></tr>
+    <tr><td>10 items</td><td>10</td><td>1</td><td class="note">Negligible</td></tr>
+    <tr><td>10,000 items</td><td>10,000</td><td>1</td><td class="mid">Noticeable</td></tr>
+    <tr><td>1,000,000 items</td><td>1,000,000</td><td>1</td><td class="no">Significant — seconds vs milliseconds</td></tr>
+  </table>
+
+</div>
+
+
+<!-- ══════════════════ DATA STRUCTURE ══════════════════ -->
+<div id="panel-data" class="panel">
+
+  <h2>Data Structure — What Lives Where</h2>
+
+  <div class="card sky">
+    A pandas DataFrame looks like a table, but underneath it's a collection of NumPy arrays — one per column, each a contiguous block of numbers in RAM. Strings are handled separately via pointers.
+  </div>
+
+  <h3>A DataFrame in memory</h3>
+
+  <div class="df-wrap" style="align-items: flex-start;">
+    <div>
+      <div class="df-label">What you see in Python</div>
+      <table class="df">
+        <tr><th></th><th>name</th><th>score</th><th>active</th></tr>
+        <tr><td class="key">0</td><td>Alice</td><td>88</td><td>True</td></tr>
+        <tr><td class="key">1</td><td>Bob</td><td>74</td><td>False</td></tr>
+        <tr><td class="key">2</td><td>Carol</td><td>91</td><td>True</td></tr>
+      </table>
+    </div>
+    <div class="arrow">→</div>
+    <div>
+      <div class="df-label">What lives in RAM</div>
+      <table class="df">
+        <tr><th>column</th><th>type</th><th>stored as</th></tr>
+        <tr><td>name</td><td>object</td><td class="ptr">pointers → str objects</td></tr>
+        <tr><td>score</td><td>int64</td><td class="result">NumPy int array</td></tr>
+        <tr><td>active</td><td>bool</td><td class="result">NumPy bool array</td></tr>
+        <tr><td>(index)</td><td>int64</td><td class="result">NumPy int array</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Integer and boolean columns</strong> are stored as contiguous NumPy arrays — they can be vectorized directly. 
+    <strong>String columns</strong> (dtype=object) store pointers to Python string objects scattered in memory — they can't be vectorized the same way, which is one reason <code>apply</code> or <code>map</code> are often used on string columns.
+  </div>
+
+  <h3>Why the structure determines the tool</h3>
+
+  <div class="struct-grid">
+    <div class="struct-card">
+      <h4>Numeric column → vectorize</h4>
+      <div style="font-size: 0.92rem;">
+        Stored as a contiguous NumPy array. You can pass the whole thing to C in one trip.
+      </div>
+      <pre style="margin-top: 10px;">df['score'] * 1.1
+# NumPy multiplies entire array
+# One trip to C</pre>
+      <div class="pill green">✓ vectorizable</div>
+    </div>
+
+    <div class="struct-card">
+      <h4>String column → apply or map</h4>
+      <div style="font-size: 0.92rem;">
+        Stored as pointers to Python string objects. No contiguous block to hand to C.
+      </div>
+      <pre style="margin-top: 10px;">df['name'].apply(str.upper)
+# Loops through each pointer
+# Python-level iteration</pre>
+      <div class="pill red">not easily vectorizable</div>
+    </div>
+
+    <div class="struct-card">
+      <h4>Simple transformation → vectorize</h4>
+      <div style="font-size: 0.92rem;">
+        Uniform operation across the array. NumPy knows how to batch it.
+      </div>
+      <pre style="margin-top: 10px;">df['score'] > 80
+# Returns boolean array
+# One C operation</pre>
+      <div class="pill green">✓ vectorizable</div>
+    </div>
+
+    <div class="struct-card">
+      <h4>Conditional logic → apply</h4>
+      <div style="font-size: 0.92rem;">
+        When each row's result depends on multiple conditions or columns, NumPy can't batch it.
+      </div>
+      <pre style="margin-top: 10px;">df.apply(
+  lambda r: 'high'
+    if r['score'] > 80
+    else 'low', axis=1)</pre>
+      <div class="pill red">needs apply</div>
+    </div>
+  </div>
+
+  <h3>The pointer detail — strings vs numbers</h3>
+  <div class="card">
+    When pandas stores integers, they sit next to each other in RAM — 88, 74, 91 in a row. C can sweep through them in one pass. 
+    When pandas stores strings, each cell holds a <em>pointer</em> (an address) that points to a Python string object somewhere else in memory. 
+    C can't sweep through those the same way — it has to follow each pointer separately. That's why string operations stay at the Python level.
+  </div>
+
+  <h3>select_dtypes() — filtering by what's actually in memory</h3>
+
+  <div class="card sky">
+    Because numeric columns and string columns are stored differently, it often makes sense to <em>filter to numeric columns first</em> before running operations. 
+    <code>select_dtypes()</code> is how you do that — it returns only the columns whose underlying storage matches what you asked for.
+  </div>
+
+  <div class="struct-grid">
+    <div class="struct-card">
+      <h4>What select_dtypes does</h4>
+      <div style="font-size: 0.92rem; margin-top: 6px;">
+        Filters the DataFrame to columns of a given type. The result is a smaller DataFrame — only the matching columns, same rows.
+      </div>
+      <pre style="margin-top: 10px;">df.select_dtypes("number")
+# Returns only int and float columns
+# Drops strings, booleans, etc.
+
+df.select_dtypes("object")
+# Returns only string columns</pre>
+    </div>
+
+    <div class="struct-card">
+      <h4>Why it connects to the stack</h4>
+      <div style="font-size: 0.92rem; margin-top: 6px;">
+        <code>select_dtypes("number")</code> gives you <em>only contiguous NumPy arrays</em>. 
+        That means everything in the result can take one trip to C. 
+        You're not just filtering — you're selecting the columns that are actually stored in the right format for fast operations.
+      </div>
+    </div>
+  </div>
+
+  <div class="df-wrap" style="align-items: flex-start; margin-top: 4px;">
+    <div>
+      <div class="df-label">df — mixed types</div>
+      <table class="df">
+        <tr><th>driver</th><th>race_1</th><th>race_2</th><th>race_3</th></tr>
+        <tr><td>Alice</td><td>1</td><td>NaN</td><td>3</td></tr>
+        <tr><td>Bob</td><td>2</td><td>1</td><td>NaN</td></tr>
+        <tr><td>Carol</td><td>NaN</td><td>3</td><td>2</td></tr>
+      </table>
+    </div>
+    <div class="arrow">→</div>
+    <div>
+      <div class="df-label">after select_dtypes("number")</div>
+      <table class="df">
+        <tr><th>race_1</th><th>race_2</th><th>race_3</th></tr>
+        <tr><td>1</td><td class="nan" style="color:#A08060;font-style:italic">NaN</td><td>3</td></tr>
+        <tr><td>2</td><td>1</td><td class="nan" style="color:#A08060;font-style:italic">NaN</td></tr>
+        <tr><td class="nan" style="color:#A08060;font-style:italic">NaN</td><td>3</td><td>2</td></tr>
+      </table>
+    </div>
+    <div class="arrow">→</div>
+    <div>
+      <div class="df-label">.apply(count_races, axis=1)</div>
+      <table class="df">
+        <tr><th>races finished</th></tr>
+        <tr><td class="result">2</td></tr>
+        <tr><td class="result">2</td></tr>
+        <tr><td class="result">2</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <pre>df.select_dtypes("number").apply(count_races, axis=1)
+# Step 1: select_dtypes("number") — drop the driver column (string)
+#         now you have only contiguous NumPy arrays
+# Step 2: .apply(count_races, axis=1) — apply your function row by row
+#         axis=1 means: each call to count_races receives one full row
+#         count_races counts non-NaN values in that row</pre>
+
+  <div class="note">
+    <strong>The sequence matters:</strong> <code>select_dtypes</code> first, then <code>apply</code>. 
+    If you ran <code>apply</code> on the full DataFrame including the driver name column, your function would receive strings alongside numbers and likely break. 
+    <code>select_dtypes</code> is a deliberate act of knowing your data structure — keeping only the columns stored as NumPy arrays before you iterate over them.
+  </div>
+
+</div>
+
+
+<!-- ══════════════════ WHEN TO USE ══════════════════ -->
+<div id="panel-when" class="panel">
+
+  <h2>When to Use What</h2>
+
+  <div class="card sky">
+    In practice you won't stop and think "which layer am I using?" — but understanding the stack tells you <em>why</em> certain choices are faster, and what to reach for when performance matters.
+  </div>
+
+  <h3>Decision guide</h3>
+
+  <table class="methods">
+    <tr><th>Situation</th><th>Reach for</th><th>Why</th></tr>
+    <tr>
+      <td>Math on a numeric column: multiply, add, compare</td>
+      <td class="yes">Vectorized NumPy / pandas</td>
+      <td>Contiguous array → one C trip</td>
+    </tr>
+    <tr>
+      <td>Transform one column with a simple function</td>
+      <td class="mid"><code>.map()</code> on Series</td>
+      <td>Readable, works element-by-element</td>
+    </tr>
+    <tr>
+      <td>Operation needs multiple columns in the same row</td>
+      <td class="mid"><code>.apply(axis=1)</code></td>
+      <td>Sees the whole row at once</td>
+    </tr>
+    <tr>
+      <td>Complex conditional logic per row</td>
+      <td class="mid"><code>.apply()</code></td>
+      <td>Can't vectorize conditional branching</td>
+    </tr>
+    <tr>
+      <td>String cleaning, text operations</td>
+      <td class="mid"><code>.apply()</code> or <code>.str.</code> methods</td>
+      <td>Strings stored as pointers, not arrays</td>
+    </tr>
+    <tr>
+      <td>Loop over any Python list or iterable</td>
+      <td class="mid">Python <code>map()</code></td>
+      <td>Not in pandas yet, pure Python</td>
+    </tr>
+    <tr>
+      <td>Small dataset, any approach</td>
+      <td class="yes">Anything readable</td>
+      <td>Speed difference negligible under ~1000 rows</td>
+    </tr>
+    <tr>
+      <td>Large dataset, numeric operation</td>
+      <td class="yes">Always vectorize</td>
+      <td>10,000+ rows: trip cost multiplies fast</td>
+    </tr>
+  </table>
+
+  <h3>The mental shortcut</h3>
+
+  <div class="struct-grid">
+    <div class="struct-card">
+      <h4>Can NumPy do this in one pass?</h4>
+      <div style="font-size:0.92rem; margin-top: 6px;">
+        Uniform operation on numbers? → <span class="pill green">vectorize</span><br><br>
+        Conditional, multi-column, or strings? → <span class="pill stone">apply / map</span>
+      </div>
+    </div>
+    <div class="struct-card">
+      <h4>What structure is your data in?</h4>
+      <div style="font-size:0.92rem; margin-top: 6px;">
+        Python list → <span class="pill">Python map()</span><br><br>
+        Pandas Series → <span class="pill stone">.map() on Series</span><br><br>
+        Pandas DataFrame → <span class="pill stone">.apply(axis=0/1)</span>
+      </div>
+    </div>
+  </div>
+
+  <h3>What your class asked you to remember</h3>
+  <div class="card">
+    Your lab gave you two lines of code. Now you know what they're actually doing:
+    <pre style="margin-top: 12px;"># map — Python built-in, loops over any iterable at Python level
+list(map(lambda x: x * 2, [1, 2, 3]))
+
+# apply — pandas method, loops over Series/DataFrame rows or columns at Python level
+df['col'].apply(lambda x: x * 2)
+
+# vectorized — skips Python loop, hands array to C in one trip
+df['col'] * 2   # same result, much faster at scale</pre>
+    <div style="margin-top: 10px; font-size: 0.9rem; color: var(--muted); font-style: italic;">
+      All three produce the same result. The difference is which layer does the looping, and how many trips down the stack.
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>You will use vectorized operations constantly</strong> in data science — not consciously as "I am vectorizing now," but every time you write <code>df['col'] * 2</code> or <code>arr &gt; threshold</code>, that's it. 
+    <code>apply</code> is for the cases that can't be vectorized. 
+    Python's <code>map</code> is for when you're not in pandas yet.
+  </div>
+
+</div>
+
+<script>
+  function show(tab) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    event.target.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+
+</body>
+</html>
