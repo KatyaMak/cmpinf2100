@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Visualization Atlas — CMPINF2100</title>
+<style>
+:root {
+  --bg: #DDD8C4;
+  --card: #F0E9D6;
+  --card-hover: #FAF4E6;
+  --sky: #8FBCD4;
+  --sky-light: #C8DDE8;
+  --sky-pale: #E4EFF5;
+  --stone: #B8864E;
+  --stone-dark: #7A5530;
+  --stone-mid: #C9A87C;
+  --ivory: #F5EFE0;
+  --text: #3D2B1F;
+  --text-light: #7A6050;
+  --border: #C4A87A;
+  --border-light: #D8C89A;
+  --code-bg: #28200E;
+  --code-text: #E8D5A8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Georgia, serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 3rem; }
+
+header {
+  background: linear-gradient(180deg, var(--sky-light) 0%, var(--sky-pale) 100%);
+  border-bottom: 2px solid var(--stone-mid);
+  padding: 2.5rem 2rem 2rem;
+  text-align: center;
+}
+.header-ornament { color: var(--stone-mid); font-size: 1rem; letter-spacing: 0.8em; margin-bottom: 0.75rem; opacity: 0.7; }
+h1 { font-size: 2rem; color: var(--stone-dark); letter-spacing: 0.08em; font-weight: normal; margin-bottom: 0.4rem; }
+.subtitle { color: var(--text-light); font-style: italic; font-size: 0.9rem; }
+
+main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+.section { margin-bottom: 2.5rem; }
+.section-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; }
+.section-title { font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--stone); white-space: nowrap; }
+.section-line { flex: 1; height: 1px; background: var(--border-light); }
+.section-badge { font-size: 0.65rem; background: var(--sky-light); color: var(--stone-dark); padding: 0.15rem 0.5rem; border-radius: 2px; letter-spacing: 0.1em; white-space: nowrap; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 1rem; }
+.card { background: var(--card); border: 1px solid var(--border-light); border-radius: 3px; padding: 1rem 0.9rem 0.9rem; cursor: pointer; transition: all 0.18s ease; user-select: none; }
+.card:hover { background: var(--card-hover); border-color: var(--stone-mid); transform: translateY(-2px); box-shadow: 0 4px 14px rgba(100,70,30,0.12); }
+.card-chart { height: 72px; display: flex; align-items: center; justify-content: center; margin-bottom: 0.7rem; }
+.card-name { font-size: 0.8rem; font-weight: bold; color: var(--stone-dark); margin-bottom: 0.3rem; line-height: 1.3; }
+.card-tag { display: inline-block; font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.1rem 0.4rem; border-radius: 2px; margin-bottom: 0.3rem; }
+.tag-cat { background: #D4EBDA; color: #2D6040; }
+.tag-con { background: #D4E4EB; color: #2D5060; }
+.tag-catcon { background: #EBE0D4; color: #604030; }
+.tag-concon { background: #E0D4EB; color: #503060; }
+.card-desc { font-size: 0.72rem; color: var(--text-light); font-style: italic; line-height: 1.45; }
+
+.overlay { display: none; position: fixed; inset: 0; background: rgba(40,25,10,0.45); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
+.overlay.open { display: flex; }
+.panel { background: var(--ivory); border: 2px solid var(--stone-mid); border-radius: 4px; max-width: 680px; width: 100%; max-height: 88vh; overflow-y: auto; padding: 2rem; position: relative; animation: slideIn 0.18s ease; }
+@keyframes slideIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.panel-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; color: var(--stone); cursor: pointer; line-height: 1; }
+.panel-close:hover { color: var(--stone-dark); }
+.panel-title { font-size: 1.25rem; color: var(--stone-dark); font-weight: normal; margin-bottom: 0.3rem; padding-right: 2rem; }
+.panel-divider { height: 1px; background: var(--border-light); margin: 0.8rem 0 1rem; }
+.panel-when { background: var(--sky-pale); border-left: 3px solid var(--sky); padding: 0.6rem 0.9rem; font-size: 0.83rem; line-height: 1.5; border-radius: 0 3px 3px 0; margin-bottom: 1.25rem; }
+.panel-section { margin-top: 1.25rem; }
+.panel-section-title { font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--stone); margin-bottom: 0.5rem; }
+.panel-anatomy { font-size: 0.82rem; line-height: 1.7; color: var(--text); padding-left: 1.2rem; }
+.panel-anatomy li { margin-bottom: 0.2rem; }
+pre { background: var(--code-bg); color: var(--code-text); padding: 0.9rem 1rem; border-radius: 3px; font-size: 0.76rem; overflow-x: auto; line-height: 1.65; margin-top: 0.5rem; font-family: 'Courier New', monospace; }
+.params-grid { display: grid; grid-template-columns: auto 1fr; gap: 0.3rem 1rem; font-size: 0.78rem; margin-top: 0.5rem; }
+.param-k { font-family: 'Courier New', monospace; color: var(--stone-dark); white-space: nowrap; }
+.param-v { color: var(--text-light); font-style: italic; }
+
+footer { text-align: center; padding: 1.5rem; font-size: 0.72rem; color: var(--text-light); letter-spacing: 0.1em; border-top: 1px solid var(--border-light); margin-top: 1rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-ornament">✦ ✦ ✦</div>
+  <h1>Data Visualization Atlas</h1>
+  <p class="subtitle">CMPINF2100 · Modules 08–10 · matplotlib · seaborn · pandas</p>
+</header>
+
+<main>
+
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">One Variable</span>
+    <div class="section-line"></div>
+    <span class="section-badge">single column</span>
+  </div>
+  <div class="cards">
+
+    <div class="card" onclick="showDetail('bar')">
+      <div class="card-chart"><svg viewBox="0 0 90 65" width="90" height="65">
+        <rect x="8" y="35" width="14" height="25" fill="#C4955A" rx="1"/>
+        <rect x="27" y="18" width="14" height="42" fill="#C4955A" rx="1"/>
+        <rect x="46" y="28" width="14" height="32" fill="#C4955A" rx="1"/>
+        <rect x="65" y="10" width="14" height="50" fill="#C4955A" rx="1"/>
+        <line x1="5" y1="60" x2="85" y2="60" stroke="#C4A87A" stroke-width="1"/>
+      </svg></div>
+      <div class="card-name">Bar Chart</div>
+      <div><span class="card-tag tag-cat">categorical</span></div>
+      <div class="card-desc">Count of each category</div>
+    </div>
+
+    <div class="card" onclick="showDetail('hist')">
+      <div class="card-chart"><svg viewBox="0 0 90 65" width="90" height="65">
+        <rect x="5" y="48" width="13" height="12" fill="#8FBCD4" rx="1"/>
+        <rect x="18" y="35" width="13" height="25" fill="#8FBCD4" rx="1"/>
+        <rect x="31" y="15" width="13" height="45" fill="#8FBCD4" rx="1"/>
+        <rect x="44" y="20" width="13" height="40" fill="#8FBCD4" rx="1"/>
+        <rect x="57" y="38" width="13" height="22" fill="#8FBCD4" rx="1"/>
+        <rect x="70" y="50" width="13" height="10" fill="#8FBCD4" rx="1"/>
+        <line x1="3" y1="60" x2="85" y2="60" stroke="#C4A87A" stroke-width="1"/>
+      </svg></div>
+      <div class="card-name">Histogram</div>
+      <div><span class="card-tag tag-con">continuous</span></div>
+      <div class="card-desc">Distribution of values in bins</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">Categorical Combinations</span>
+    <div class="section-line"></div>
+    <span class="section-badge">cat × cat</span>
+  </div>
+  <div class="cards">
+
+    <div class="card" onclick="showDetail('grouped')">
+      <div class="card-chart"><svg viewBox="0 0 90 65" width="90" height="65">
+        <rect x="6" y="30" width="10" height="30" fill="#C4955A" rx="1"/>
+        <rect x="17" y="18" width="10" height="42" fill="#8FBCD4" rx="1"/>
+        <rect x="34" y="22" width="10" height="38" fill="#C4955A" rx="1"/>
+        <rect x="45" y="35" width="10" height="25" fill="#8FBCD4" rx="1"/>
+        <rect x="62" y="12" width="10" height="48" fill="#C4955A" rx="1"/>
+        <rect x="73" y="28" width="10" height="32" fill="#8FBCD4" rx="1"/>
+        <line x1="3" y1="60" x2="87" y2="60" stroke="#C4A87A" stroke-width="1"/>
+      </svg></div>
+      <div class="card-name">Grouped Bar Chart</div>
+      <div><span class="card-tag tag-cat">cat × cat</span></div>
+      <div class="card-desc">Counts for category combinations</div>
+    </div>
+
+    <div class="card" onclick="showDetail('facetbar')">
+      <div class="card-chart"><svg viewBox="0 0 90 65" width="90" height="65">
+        <rect x="3" y="1" width="40" height="61" fill="none" stroke="#C4A87A" stroke-width="0.8" rx="2"/>
+        <rect x="47" y="1" width="40" height="61" fill="none" stroke="#C4A87A" stroke-width="0.8" rx="2"/>
+        <rect x="8" y="30" width="10" height="28" fill="#C4955A" rx="1"/>
+        <rect x="21" y="18" width="10" height="40" fill="#C4955A" rx="1"/>
+        <rect x="33" y="38" width="10" height="20" fill="#C4955A" rx="1"/>
+        <rect x="52" y="22" width="10" height="36" fill="#8FBCD4" rx="1"/>
+        <rect x="65" y="10" width="10" height="48" fill="#8FBCD4" rx="1"/>
+        <rect x="77" y="32" width="10" height="26" fill="#8FBCD4" rx="1"/>
+      </svg></div>
+      <div class="card-name">Faceted Bar Chart</div>
+      <div><span class="card-tag tag-cat">cat × cat</span></div>
+      <div class="card-desc">Separate panel per category</div>
+    </div>
+
+    <div class="card" onclick="showDetail('heatmap')">
+      <div class="card-chart"><svg viewBox="0 0 90 65" width="90" height="65">
+        <rect x="10" y="8" width="20" height="16" fill="#E8D5B0" rx="1"/>
+        <rect x="32" y="8" width="20" height="16" fill="#C4955A" rx="1"/>
+        <rect x="54" y="8" width="20" height="16" fill="#8A5520" rx="1"/>
+        <rect x="10" y="26" width="20" height="16" fill="#C4955A" rx="1"/>
+        <rect x="32" y="26" width="20" height="16" fill="#E8D5B0" rx="1"/>
+        <rect x="54" y="26" width="20" height="16" fill="#C4955A" rx="1"/>
+        <rect x="10" y="44" width="20" height="16" fill="#8A5520" rx="1"/>
+        <rect x="32" y="44" width="20" height="16" fill="#C4955A" rx="1"/>
+        <rect x="54" y="44" width="20" height="16" fill="#E8D5B0" rx="1"/>
+      </svg></div>
+      <div class="card-name">Heatmap</div>
+      <div><span class="card-tag tag-cat">cat × cat</span></div>
+      <div class="card-desc">Color-encoded counts in a grid</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">Categorical → Continuous</span>
+    <div class="section-line"></div>
+    <span class="section-badge">cat × num</span>
+  </div>
+  <div class="cards">
+
+    <div class="card" onclick="showDetail('box')">
+      <div class="card-chart"><svg viewBox="0 0 90 65" width="90" height="65">
+        <line x1="28" y1="8" x2="28" y2="20" stroke="#C4955A" stroke-width="1.5"/>
+        <line x1="21" y1="8" x2="35" y2="8" stroke="#C4955A" stroke-width="1.5"/>
+        <rect x="17" y="20" width="22" height="26" fill="#C4955A" fill-opacity="0.25" stroke="#C4955A" stroke-width="1.5" rx="1"/>
+        <line x1="17" y1="32" x2="39" y2="32" stroke="#7A5530" stroke-width="2"/>
+        <line x1="28" y1="46" x2="28" y2="56" stroke="#C4955A" stroke-width="1.5"/>
+        <line x1="21" y1="56" x2="35" y2="56" stroke="#C4955A" stroke-width="1.5"/>
+        <circle cx="28" cy="62" r="2" fill="none" stroke="#C4955A" stroke-width="1.2"/>
+        <line x1="60" y1="12" x2="60" y2="24" stroke="#8FBCD4" stroke-width="1.5"/>
+        <line x1="53" y1="12" x2="67" y2="12" stroke="#8FBCD4" stroke-width="1.5"/>
+        <rect x="49" y="24" width="22" height="20" fill="#8FBCD4" fill-opacity="0.25" stroke="#8FBCD4" stroke-width="1.5" rx="1"/>
+        <line x1="49" y1="36" x2="71" y2="36" stroke="#3A6880" stroke-width="2"/>
+        <line x1="60" y1="44" x2="60" y2="56" stroke="#8FBCD4" stroke-width="1.5"/>
+        <line x1="53" y1="56" x2="67" y2="56" stroke="#8FBCD4" stroke-width="1.5"/>
+      </svg></div>
+      <div class="card-name">Boxplot</div>
+      <div><span class="card-tag tag-catcon">cat → num</span></div>
+      <div class="card-desc">Median, IQR, outliers per group</div>
+    </div>
+
+    <div class="card" onclick="showDetail('violin')">
+      <div class="card-chart"><svg viewBox="0 0 90 65" width="90" height="65">
+        <path d="M 27,4 C 37,10 39,25 37,33 C 39,41 37,54 27,60 C 17,54 15,41 17,33 C 15,25 17,10 27,4 Z" fill="#C4955A" fill-opacity="0.3" stroke="#C4955A" stroke-width="1.5"/>
+        <line x1="27" y1="29" x2="27" y2="37" stroke="#7A5530" stroke-width="2.5"/>
+        <path d="M 63,8 C 70,12 72,24 70,33 C 72,42 70,54 63,58 C 56,54 54,42 56,33 C 54,24 56,12 63,8 Z" fill="#8FBCD4" fill-opacity="0.3" stroke="#8FBCD4" stroke-width="1.5"/>
+        <line x1="63" y1="30" x2="63" y2="37" stroke="#3A6880" stroke-width="2.5"/>
+      </svg></div>
+      <div class="card-name">Violin Plot</div>
+      <div><span class="card-tag tag-catcon">cat → num</span></div>
+      <div class="card-desc">Distribution shape + summary stats</div>
+    </div>
+
+    <div class="card" onclick="showDetail('facethist')">
+      <div class="card-chart"><svg viewBox="0 0 90 65" width="90" height="65">
+        <rect x="2" y="1" width="40" height="61" fill="none" stroke="#C4A87A" stroke-width="0.8" rx="2"/>
+        <rect x="48" y="1" width="40" height="61" fill="none" stroke="#C4A87A" stroke-width="0.8" rx="2"/>
+        <rect x="5" y="45" width="8" height="14" fill="#C4955A" rx="1"/>
+        <rect x="14" y="30" width="8" height="29" fill="#C4955A" rx="1"/>
+        <rect x="23" y="18" width="8" height="41" fill="#C4955A" rx="1"/>
+        <rect x="32" y="38" width="8" height="21" fill="#C4955A" rx="1"/>
+        <rect x="51" y="35" width="8" height="24" fill="#8FBCD4" rx="1"/>
+        <rect x="60" y="18" width="8" height="41" fill="#8FBCD4" rx="1"/>
+        <rect x="69" y="26" width="8" height="33" fill="#8FBCD4" rx="1"/>
+        <rect x="78" y="45" width="8" height="14" fill="#8FBCD4" rx="1"/>
+      </svg></div>
+      <div class="card-name">Faceted Histograms</div>
+      <div><span class="card-tag tag-catcon">cat → num</span></div>
+      <div class="card-desc">One histogram panel per group</div>
+    </div>
+
+    <div class="card" onclick="showDetail('kde')">
+      <div class="card-chart"><svg viewBox="0 0 90 65" width="90" height="65">
+        <path d="M 5,58 C 15,58 18,50 25,30 C 30,15 35,10 40,15 C 45,20 48,40 55,52 C 58,56 65,58 85,58" fill="none" stroke="#C4955A" stroke-width="2"/>
+        <path d="M 5,58 C 20,58 28,52 36,36 C 43,22 50,17 57,22 C 63,27 66,42 73,52 C 77,57 82,58 85,58" fill="none" stroke="#8FBCD4" stroke-width="2"/>
+        <line x1="5" y1="58" x2="85" y2="58" stroke="#C4A87A" stroke-width="1"/>
+      </svg></div>
+      <div class="card-name">Conditional KDE</div>
+      <div><span class="card-tag tag-catcon">cat → num</span></div>
+      <div class="card-desc">Smooth density curve per group</div>
+    </div>
+
+    <div class="card" onclick="showDetail('point')">
+      <div class="card-chart"><svg viewBox="0 0 90 65" width="90" height="65">
+        <line x1="20" y1="14" x2="20" y2="44" stroke="#C4955A" stroke-width="1.5"/>
+        <circle cx="20" cy="29" r="4" fill="#C4955A"/>
+        <line x1="15" y1="14" x2="25" y2="14" stroke="#C4955A" stroke-width="1.5"/>
+        <line x1="15" y1="44" x2="25" y2="44" stroke="#C4955A" stroke-width="1.5"/>
+        <line x1="45" y1="21" x2="45" y2="49" stroke="#8FBCD4" stroke-width="1.5"/>
+        <circle cx="45" cy="35" r="4" fill="#8FBCD4"/>
+        <line x1="40" y1="21" x2="50" y2="21" stroke="#8FBCD4" stroke-width="1.5"/>
+        <line x1="40" y1="49" x2="50" y2="49" stroke="#8FBCD4" stroke-width="1.5"/>
+        <line x1="70" y1="9" x2="70" y2="37" stroke="#9B7BC4" stroke-width="1.5"/>
+        <circle cx="70" cy="23" r="4" fill="#9B7BC4"/>
+        <line x1="65" y1="9" x2="75" y2="9" stroke="#9B7BC4" stroke-width="1.5"/>
+        <line x1="65" y1="37" x2="75" y2="37" stroke="#9B7BC4" stroke-width="1.5"/>
+        <line x1="5" y1="60" x2="85" y2="60" stroke="#C4A87A" stroke-width="1"/>
+      </svg></div>
+      <div class="card-name">Point Plot</div>
+      <div><span class="card-tag tag-catcon">cat → num</span></div>
+      <div class="card-desc">Mean ± confidence interval per group</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">Continuous → Continuous</span>
+    <div class="section-line"></div>
+    <span class="section-badge">num × num</span>
+  </div>
+  <div class="cards">
+
+    <div class="card" onclick="showDetail('scatter')">
+      <div class="card-chart"><svg viewBox="0 0 90 65" width="90" height="65">
+        <circle cx="15" cy="48" r="3" fill="#C4955A" opacity="0.8"/>
+        <circle cx="25" cy="40" r="3" fill="#C4955A" opacity="0.8"/>
+        <circle cx="32" cy="52" r="3" fill="#C4955A" opacity="0.8"/>
+        <circle cx="40" cy="30" r="3" fill="#C4955A" opacity="0.8"/>
+        <circle cx="48" cy="22" r="3" fill="#C4955A" opacity="0.8"/>
+        <circle cx="55" cy="36" r="3" fill="#C4955A" opacity="0.8"/>
+        <circle cx="62" cy="18" r="3" fill="#C4955A" opacity="0.8"/>
+        <circle cx="70" cy="26" r="3" fill="#C4955A" opacity="0.8"/>
+        <circle cx="77" cy="12" r="3" fill="#C4955A" opacity="0.8"/>
+        <circle cx="35" cy="44" r="3" fill="#C4955A" opacity="0.8"/>
+        <line x1="5" y1="60" x2="85" y2="60" stroke="#C4A87A" stroke-width="1"/>
+        <line x1="5" y1="60" x2="5" y2="5" stroke="#C4A87A" stroke-width="1"/>
+      </svg></div>
+      <div class="card-name">Scatter Plot</div>
+      <div><span class="card-tag tag-concon">num × num</span></div>
+      <div class="card-desc">Relationship between two numeric variables</div>
+    </div>
+
+    <div class="card" onclick="showDetail('reg')">
+      <div class="card-chart"><svg viewBox="0 0 90 65" width="90" height="65">
+        <circle cx="14" cy="50" r="2.5" fill="#C4955A" opacity="0.7"/>
+        <circle cx="22" cy="44" r="2.5" fill="#C4955A" opacity="0.7"/>
+        <circle cx="32" cy="38" r="2.5" fill="#C4955A" opacity="0.7"/>
+        <circle cx="40" cy="30" r="2.5" fill="#C4955A" opacity="0.7"/>
+        <circle cx="50" cy="26" r="2.5" fill="#C4955A" opacity="0.7"/>
+        <circle cx="58" cy="20" r="2.5" fill="#C4955A" opacity="0.7"/>
+        <circle cx="68" cy="15" r="2.5" fill="#C4955A" opacity="0.7"/>
+        <circle cx="76" cy="10" r="2.5" fill="#C4955A" opacity="0.7"/>
+        <line x1="8" y1="54" x2="82" y2="7" stroke="#7A5530" stroke-width="2"/>
+        <line x1="5" y1="60" x2="85" y2="60" stroke="#C4A87A" stroke-width="1"/>
+        <line x1="5" y1="60" x2="5" y2="5" stroke="#C4A87A" stroke-width="1"/>
+      </svg></div>
+      <div class="card-name">Scatter + Regression</div>
+      <div><span class="card-tag tag-concon">num × num</span></div>
+      <div class="card-desc">Relationship with trend line overlay</div>
+    </div>
+
+    <div class="card" onclick="showDetail('density')">
+      <div class="card-chart"><svg viewBox="0 0 90 65" width="90" height="65">
+        <ellipse cx="45" cy="32" rx="32" ry="22" fill="none" stroke="#8FBCD4" stroke-width="1.2" opacity="0.6"/>
+        <ellipse cx="45" cy="32" rx="20" ry="13" fill="none" stroke="#8FBCD4" stroke-width="1.2" opacity="0.7"/>
+        <ellipse cx="45" cy="32" rx="10" ry="6" fill="none" stroke="#8FBCD4" stroke-width="1.2" opacity="0.9"/>
+        <circle cx="22" cy="46" r="2" fill="#C4955A" opacity="0.6"/>
+        <circle cx="35" cy="30" r="2" fill="#C4955A" opacity="0.6"/>
+        <circle cx="42" cy="28" r="2" fill="#C4955A" opacity="0.6"/>
+        <circle cx="50" cy="25" r="2" fill="#C4955A" opacity="0.6"/>
+        <circle cx="58" cy="33" r="2" fill="#C4955A" opacity="0.6"/>
+        <circle cx="68" cy="22" r="2" fill="#C4955A" opacity="0.6"/>
+        <line x1="5" y1="60" x2="85" y2="60" stroke="#C4A87A" stroke-width="1"/>
+        <line x1="5" y1="60" x2="5" y2="5" stroke="#C4A87A" stroke-width="1"/>
+      </svg></div>
+      <div class="card-name">Scatter + Density</div>
+      <div><span class="card-tag tag-concon">num × num</span></div>
+      <div class="card-desc">Scatter with 2D density contours</div>
+    </div>
+
+    <div class="card" onclick="showDetail('pair')">
+      <div class="card-chart"><svg viewBox="0 0 90 65" width="90" height="65">
+        <rect x="3" y="2" width="38" height="28" fill="none" stroke="#C4A87A" stroke-width="0.8" rx="1"/>
+        <rect x="8" y="16" width="6" height="11" fill="#C4955A" rx="1" opacity="0.7"/>
+        <rect x="15" y="10" width="6" height="17" fill="#C4955A" rx="1" opacity="0.7"/>
+        <rect x="22" y="14" width="6" height="13" fill="#C4955A" rx="1" opacity="0.7"/>
+        <rect x="29" y="20" width="6" height="7" fill="#C4955A" rx="1" opacity="0.7"/>
+        <rect x="47" y="2" width="38" height="28" fill="none" stroke="#C4A87A" stroke-width="0.8" rx="1"/>
+        <circle cx="55" cy="22" r="2" fill="#8FBCD4" opacity="0.8"/>
+        <circle cx="62" cy="15" r="2" fill="#8FBCD4" opacity="0.8"/>
+        <circle cx="68" cy="20" r="2" fill="#8FBCD4" opacity="0.8"/>
+        <circle cx="75" cy="10" r="2" fill="#8FBCD4" opacity="0.8"/>
+        <rect x="3" y="36" width="38" height="28" fill="none" stroke="#C4A87A" stroke-width="0.8" rx="1"/>
+        <circle cx="12" cy="55" r="2" fill="#8FBCD4" opacity="0.8"/>
+        <circle cx="20" cy="47" r="2" fill="#8FBCD4" opacity="0.8"/>
+        <circle cx="28" cy="52" r="2" fill="#8FBCD4" opacity="0.8"/>
+        <circle cx="35" cy="43" r="2" fill="#8FBCD4" opacity="0.8"/>
+        <rect x="47" y="36" width="38" height="28" fill="none" stroke="#C4A87A" stroke-width="0.8" rx="1"/>
+        <rect x="52" y="50" width="6" height="11" fill="#C4955A" rx="1" opacity="0.7"/>
+        <rect x="59" y="42" width="6" height="19" fill="#C4955A" rx="1" opacity="0.7"/>
+        <rect x="66" y="46" width="6" height="15" fill="#C4955A" rx="1" opacity="0.7"/>
+        <rect x="73" y="52" width="6" height="9" fill="#C4955A" rx="1" opacity="0.7"/>
+      </svg></div>
+      <div class="card-name">Pair Plot</div>
+      <div><span class="card-tag tag-concon">num × num</span></div>
+      <div class="card-desc">All pairwise scatters in a grid</div>
+    </div>
+
+    <div class="card" onclick="showDetail('corr')">
+      <div class="card-chart"><svg viewBox="0 0 90 65" width="90" height="65">
+        <rect x="8" y="5" width="17" height="14" fill="#8A5520" rx="1"/>
+        <rect x="27" y="5" width="17" height="14" fill="#C4955A" rx="1"/>
+        <rect x="46" y="5" width="17" height="14" fill="#E8C890" rx="1"/>
+        <rect x="65" y="5" width="17" height="14" fill="#D4A870" rx="1"/>
+        <rect x="8" y="21" width="17" height="14" fill="#C4955A" rx="1"/>
+        <rect x="27" y="21" width="17" height="14" fill="#8A5520" rx="1"/>
+        <rect x="46" y="21" width="17" height="14" fill="#D4A870" rx="1"/>
+        <rect x="65" y="21" width="17" height="14" fill="#E8D5B0" rx="1"/>
+        <rect x="8" y="37" width="17" height="14" fill="#E8C890" rx="1"/>
+        <rect x="27" y="37" width="17" height="14" fill="#D4A870" rx="1"/>
+        <rect x="46" y="37" width="17" height="14" fill="#8A5520" rx="1"/>
+        <rect x="65" y="37" width="17" height="14" fill="#C4955A" rx="1"/>
+        <rect x="8" y="53" width="17" height="9" fill="#D4A870" rx="1"/>
+        <rect x="27" y="53" width="17" height="9" fill="#E8D5B0" rx="1"/>
+        <rect x="46" y="53" width="17" height="9" fill="#C4955A" rx="1"/>
+        <rect x="65" y="53" width="17" height="9" fill="#8A5520" rx="1"/>
+      </svg></div>
+      <div class="card-name">Correlation Plot</div>
+      <div><span class="card-tag tag-concon">num × num</span></div>
+      <div class="card-desc">Correlation matrix as a heatmap</div>
+    </div>
+
+  </div>
+</div>
+
+</main>
+<footer>✦ &nbsp; click any card to open code reference &nbsp; · &nbsp; press Esc to close &nbsp; ✦</footer>
+
+<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
+  <div class="panel" id="panel">
+    <button class="panel-close" onclick="closePanel()">×</button>
+    <div id="panel-content"></div>
+  </div>
+</div>
+
+<script>
+const details = {
+  bar: {
+    title: 'Bar Chart',
+    tag: 'One Categorical Variable',
+    when: 'How many rows belong to each category. Use when x is a string/label column with a manageable number of unique values (roughly ≤ 20).',
+    anatomy: ['Each bar = one category level','Bar height = count (or pre-computed value)','Gaps between bars — categories are discrete, not continuous'],
+    code: `# matplotlib (you supply the counts)
+fig, ax = plt.subplots(figsize=(8, 5))
+ax.bar(categories, values, color='steelblue', edgecolor='white')
+ax.set_title('Title')
+ax.set_xlabel('Category')
+ax.set_ylabel('Count')
+
+# seaborn axes-level (counts for you)
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.countplot(data=df, x='col', ax=ax)
+
+# seaborn figure-level
+sns.catplot(data=df, x='col', kind='count', height=5)`,
+    params: [['hue=','split bars by a second category'],['order=','[\'B\',\'A\',\'C\'] — control bar order'],['palette=','\'viridis\', \'Blues\', \'Set2\' — color scheme'],['ax.barh()','horizontal bars variant'],['stat=','\'count\', \'percent\', \'probability\' (countplot only)']]
+  },
+  hist: {
+    title: 'Histogram',
+    tag: 'One Continuous Variable',
+    when: 'Distribution of a numeric variable — where values cluster, how spread out they are. The bin is what makes continuous data plottable — you trade precision for pattern. Not for categorical data.',
+    anatomy: ['Bars are touching — continuous number line','Each bar = one bin (interval of values)','Bar height = count of values falling in that bin','Shape reveals: normal, skewed, bimodal, uniform'],
+    code: `# matplotlib
+fig, ax = plt.subplots(figsize=(8, 5))
+ax.hist(data, bins=20, color='steelblue', edgecolor='white')
+
+# seaborn axes-level
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.histplot(data=df, x='col', bins=20, kde=True, ax=ax)
+
+# seaborn figure-level
+sns.displot(data=df, x='col', bins=20, kind='hist', kde=True, height=5)
+
+# loop over all numeric columns
+for var in df.select_dtypes('number').columns:
+    sns.displot(data=df, x=var, kind='hist', kde=True, height=3)`,
+    params: [['bins=','number of intervals — key judgment call (default 10, often too few)'],['binwidth=','alternative to bins= — width of each bar'],['kde=True','overlay smooth density curve'],['hue=','overlapping distributions per category'],['stat=','\'count\', \'density\', \'percent\', \'probability\''],['element=','\'bars\', \'step\', \'poly\'']]
+  },
+  grouped: {
+    title: 'Grouped Bar Chart',
+    tag: 'Categorical × Categorical',
+    when: 'Count of each combination of two categorical variables. Best when both variables have ≤ 5 unique values each. When N is larger, consider a heatmap.',
+    anatomy: ['Groups on x-axis = levels of first category','Colors (hue) = levels of second category','Bar height = count of that specific combination'],
+    code: `# seaborn axes-level
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.countplot(data=df, x='cat1', hue='cat2', ax=ax)
+
+# seaborn figure-level
+sns.catplot(data=df, x='cat1', hue='cat2', kind='count', height=5)`,
+    params: [['x=','first categorical column'],['hue=','second categorical column (color split)'],['order=','control x-axis group order'],['hue_order=','control hue level order'],['palette=','color scheme']]
+  },
+  facetbar: {
+    title: 'Faceted Bar Chart',
+    tag: 'Categorical × Categorical',
+    when: 'Separate panels instead of side-by-side bars. Better when you want to compare each group independently without bars crowding each other.',
+    anatomy: ['Each panel = one level of second category','Within each panel: bar chart of first category','col= splits horizontally, row= splits vertically'],
+    code: `# seaborn figure-level
+sns.catplot(data=df, x='cat1', kind='count',
+            col='cat2', height=4, aspect=0.8)
+
+# with hue too (three variables)
+sns.catplot(data=df, x='cat1', hue='cat3', kind='count',
+            col='cat2', col_wrap=2, height=4)`,
+    params: [['col=','split into columns by this category'],['row=','split into rows by this category'],['col_wrap=','max panels per row before wrapping'],['height=','height of each panel in inches'],['aspect=','width = height × aspect']]
+  },
+  heatmap: {
+    title: 'Heatmap',
+    tag: 'Categorical × Categorical',
+    when: 'Count of all combinations of two categorical variables. Better than grouped bars when either variable has many levels (> 5). Requires a two-step process: crosstab first, then heatmap.',
+    anatomy: ['Rows = levels of one category','Columns = levels of another','Cell color intensity = count','annot=True shows numbers in each cell','Diagonal = where same category meets itself'],
+    code: `# step 1: create contingency table
+ct = pd.crosstab(df['cat1'], df['cat2'])
+
+# step 2: draw heatmap
+fig, ax = plt.subplots(figsize=(8, 6))
+sns.heatmap(ct, annot=True, fmt='d', cbar=False, ax=ax)
+ax.set_title('Title')`,
+    params: [['annot=True','show count numbers inside each cell'],['fmt=\'d\'','format as integers (not 5.0 but 5)'],['cbar=False','hide the color bar legend'],['cmap=','\'YlOrBr\', \'Blues\', \'viridis\' — color scheme'],['ax=ax','pass your own axes for size/label control']]
+  },
+  box: {
+    title: 'Boxplot',
+    tag: 'Categorical → Continuous',
+    when: 'Distribution summary of a continuous variable across categories. Best for roughly symmetric distributions. Avoid for heavily skewed data — use faceted histograms instead.',
+    anatomy: ['Line inside box = median (Q2 — 50th percentile)','Box edges = Q1 (25%) and Q3 (75%)','Box width = IQR (middle 50% of data)','Whiskers = min/max within 1.5×IQR from the box','Dots beyond whiskers = outliers'],
+    code: `# seaborn axes-level
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.boxplot(data=df, x='cat_col', y='num_col', ax=ax)
+
+# seaborn figure-level
+sns.catplot(data=df, x='cat_col', y='num_col',
+            kind='box', height=5)
+
+# with means shown
+sns.catplot(data=df, x='cat_col', y='num_col',
+            kind='box', showmeans=True, height=5)`,
+    params: [['x=','categorical column (one box per level)'],['y=','continuous column (required — values to summarize)'],['hue=','split each box by a third variable'],['showmeans=True','overlay mean marker on each box'],['order=','control category order']]
+  },
+  violin: {
+    title: 'Violin Plot',
+    tag: 'Categorical → Continuous',
+    when: 'Like a boxplot but also shows the full distribution shape via KDE. Better when distribution shape matters — bimodal, skewed, etc. The width of the shape encodes density.',
+    anatomy: ['Width at any height = density (how many values there)','Widest point = most common value','Inner mark = same as boxplot (median, IQR)','Symmetric shape = same data mirrored on both sides'],
+    code: `# seaborn axes-level
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.violinplot(data=df, x='cat_col', y='num_col', ax=ax)
+
+# seaborn figure-level
+sns.catplot(data=df, x='cat_col', y='num_col',
+            kind='violin', height=5)`,
+    params: [['x=','categorical column'],['y=','continuous column'],['hue=','split by a third variable'],['inner=','\'box\' (default), \'quart\', \'point\', None'],['split=True','split hue on each side of violin (2-level hue only)']]
+  },
+  facethist: {
+    title: 'Faceted Histograms',
+    tag: 'Categorical → Continuous',
+    when: 'Distribution of a continuous variable per category — especially useful for skewed distributions where boxplots are misleading. Each group gets its own panel.',
+    anatomy: ['Each panel = one category level','Within each panel: histogram of continuous variable','Compare shapes and spreads across groups side by side'],
+    code: `# seaborn figure-level with col=
+sns.displot(data=df, x='num_col', col='cat_col',
+            kind='hist', bins=20, height=4)
+
+# with KDE overlay
+sns.displot(data=df, x='num_col', col='cat_col',
+            kind='hist', kde=True, height=4)
+
+# overlapping in one panel (using hue instead)
+sns.displot(data=df, x='num_col', hue='cat_col',
+            kind='hist', alpha=0.5, height=5)`,
+    params: [['col=','split into separate panels by category'],['col_wrap=','max panels per row'],['hue=','overlapping distributions in one panel'],['kde=True','add density curve to each panel'],['bins=','number of bins per histogram']]
+  },
+  kde: {
+    title: 'Conditional KDE Plot',
+    tag: 'Categorical → Continuous',
+    when: 'Smooth density of a continuous variable per category. Good when you want to compare distribution shapes without the bin-size judgment call of histograms.',
+    anatomy: ['Each curve = one category level','Peak = most common value range','Curve width = spread of values','Smooth — no bins, uses kernel density estimation'],
+    code: `# seaborn axes-level
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.kdeplot(data=df, x='num_col', hue='cat_col', ax=ax)
+
+# seaborn figure-level
+sns.displot(data=df, x='num_col', hue='cat_col',
+            kind='kde', height=5)
+
+# faceted panels
+sns.displot(data=df, x='num_col', col='cat_col',
+            kind='kde', height=4)`,
+    params: [['hue=','one curve per category level'],['fill=True','fill area under each curve'],['bw_adjust=','smoothness (1=default, <1=spiky, >1=smoother)'],['common_norm=False','normalize each curve independently']]
+  },
+  point: {
+    title: 'Point Plot',
+    tag: 'Categorical → Continuous',
+    when: 'Mean value of a continuous variable per category, with confidence interval. Good for showing which group has a higher average and whether differences are meaningful.',
+    anatomy: ['Dot = mean of continuous variable for that group','Vertical bar = 95% confidence interval','Connected dots (default) = shows trend across categories','If confidence intervals overlap → difference may not be significant'],
+    code: `# seaborn axes-level
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.pointplot(data=df, x='cat_col', y='num_col', ax=ax)
+
+# seaborn figure-level
+sns.catplot(data=df, x='cat_col', y='num_col',
+            kind='point', height=5)
+
+# with hue
+sns.catplot(data=df, x='cat_col', y='num_col',
+            hue='cat2', kind='point', height=5)`,
+    params: [['x=','categorical column'],['y=','continuous column (mean will be computed)'],['hue=','split by a third variable'],['linestyles=\'\'','remove connecting lines between points'],['dodge=True','separate hue points horizontally']]
+  },
+  scatter: {
+    title: 'Scatter Plot',
+    tag: 'Continuous × Continuous',
+    when: 'Relationship between two numeric variables. Are they correlated? Are there clusters? Outliers? Each dot is one row of data.',
+    anatomy: ['Each dot = one row of data','x position = value of first variable','y position = value of second variable','Pattern direction = positive / negative / no correlation','Spread = strength of relationship'],
+    code: `# matplotlib
+fig, ax = plt.subplots(figsize=(8, 6))
+ax.scatter(df['x_col'], df['y_col'], alpha=0.5, s=30)
+
+# seaborn axes-level
+fig, ax = plt.subplots(figsize=(8, 6))
+sns.scatterplot(data=df, x='x_col', y='y_col', ax=ax)
+
+# seaborn figure-level
+sns.relplot(data=df, x='x_col', y='y_col',
+            kind='scatter', height=6)`,
+    params: [['alpha=','transparency (0–1) — helps with overplotting'],['s=','dot size (matplotlib) or size= (seaborn)'],['hue=','color dots by a third variable (cat or continuous)'],['style=','shape of dots by a category'],['col=','facet into panels by a category']]
+  },
+  reg: {
+    title: 'Scatter + Regression Line',
+    tag: 'Continuous × Continuous',
+    when: 'Relationship between two numeric variables with a linear trend line. Shows direction and strength of correlation visually. The shaded band is the confidence interval around the line.',
+    anatomy: ['Dots = individual data points','Line = best-fit linear regression','Shaded band = confidence interval around the line','Steep line = strong relationship; flat = weak'],
+    code: `# seaborn axes-level
+fig, ax = plt.subplots(figsize=(8, 6))
+sns.regplot(data=df, x='x_col', y='y_col', ax=ax)
+
+# seaborn figure-level (supports hue and col)
+sns.lmplot(data=df, x='x_col', y='y_col', height=6)
+
+# with facets by category
+sns.lmplot(data=df, x='x_col', y='y_col',
+           col='cat_col', height=5)`,
+    params: [['ci=95','confidence interval width (None to hide)'],['scatter=False','show only the line, no dots'],['order=2','polynomial regression (2 = quadratic)'],['hue=','separate regression lines per category (lmplot only)'],['lowess=True','non-linear smoothed curve instead of line']]
+  },
+  density: {
+    title: 'Scatter + Density',
+    tag: 'Continuous × Continuous',
+    when: 'Scatter plot with 2D density contours. Useful when you have many overlapping points — contours show where the bulk of data concentrates. Like a topographic map of your data.',
+    anatomy: ['Dots = individual data points','Contour lines = regions of equal density','Inner contours = higher density (more points)','Tightly packed contours = steep concentration'],
+    code: `# 2D KDE only (no scatter)
+fig, ax = plt.subplots(figsize=(8, 6))
+sns.kdeplot(data=df, x='x_col', y='y_col', fill=True, ax=ax)
+
+# scatter + density overlay
+fig, ax = plt.subplots(figsize=(8, 6))
+sns.scatterplot(data=df, x='x_col', y='y_col', alpha=0.3, ax=ax)
+sns.kdeplot(data=df, x='x_col', y='y_col', ax=ax)
+
+# joint plot (marginal distributions included)
+sns.jointplot(data=df, x='x_col', y='y_col', kind='kde')`,
+    params: [['fill=True','fill contours with color'],['levels=','number of contour levels'],['thresh=','minimum density to show (0–1)'],['kind=\'kde\'','in jointplot — also try \'hex\' or \'scatter\''],['bw_adjust=','smoothness of the density estimate']]
+  },
+  pair: {
+    title: 'Pair Plot',
+    tag: 'Continuous × Continuous',
+    when: 'All pairwise relationships between multiple numeric columns at once. EDA shortcut: one call to see the full picture. Diagonal shows each variable\'s own distribution.',
+    anatomy: ['Diagonal panels = distribution of each variable (hist or KDE)','Off-diagonal panels = scatter plot of each pair','Grid is symmetric: upper triangle mirrors lower','hue= adds color by category across all panels'],
+    code: `# seaborn — full pair plot
+sns.pairplot(df)
+
+# with hue (color by category)
+sns.pairplot(df, hue='cat_col')
+
+# select specific columns only
+sns.pairplot(df[['col1', 'col2', 'col3']])
+
+# KDE on diagonal instead of histogram
+sns.pairplot(df, diag_kind='kde')`,
+    params: [['hue=','color all panels by a categorical column'],['diag_kind=','\'hist\' (default) or \'kde\' — diagonal panels'],['kind=','\'scatter\' (default), \'kde\', \'hist\', \'reg\' — off-diagonal'],['vars=','list of columns to include (subset)'],['corner=True','show only lower triangle']]
+  },
+  corr: {
+    title: 'Correlation Plot',
+    tag: 'Continuous × Continuous',
+    when: 'Correlation coefficients between all pairs of numeric columns, visualized as a color heatmap. Quick scan for which variables move together. Requires computing the correlation matrix first.',
+    anatomy: ['Diagonal = each variable with itself (always 1.0)','Color = correlation strength: dark = high, light = low','Positive correlation (+1): both go up together','Negative correlation (−1): one up, other down','Values range −1 to +1'],
+    code: `# step 1: compute correlation matrix
+corr = df.corr(numeric_only=True)
+
+# step 2: draw heatmap
+fig, ax = plt.subplots(figsize=(8, 6))
+sns.heatmap(corr, annot=True, fmt='.2f',
+            cmap='coolwarm', center=0,
+            vmin=-1, vmax=1, ax=ax)
+ax.set_title('Correlation Matrix')`,
+    params: [['fmt=\'.2f\'','show 2 decimal places in each cell'],['cmap=\'coolwarm\'','diverging: blue=negative, red=positive'],['center=0','center color scale at zero'],['vmin=-1, vmax=1','fix scale to full correlation range'],['mask=','hide upper triangle (show lower only)']]
+  }
+};
+
+function showDetail(id) {
+  const d = details[id];
+  if (!d) return;
+  const anatomy = d.anatomy.map(a => `<li>${a}</li>`).join('');
+  const params = d.params.map(([k,v]) =>
+    `<div class="param-k">${k}</div><div class="param-v">${v}</div>`
+  ).join('');
+  document.getElementById('panel-content').innerHTML = `
+    <div class="panel-title">${d.title}</div>
+    <div style="font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--stone);margin-bottom:0.4rem">${d.tag}</div>
+    <div class="panel-divider"></div>
+    <div class="panel-when"><strong>When to use:</strong> ${d.when}</div>
+    <div class="panel-section">
+      <div class="panel-section-title">What you see</div>
+      <ul class="panel-anatomy">${anatomy}</ul>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Code</div>
+      <pre>${d.code}</pre>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Key parameters</div>
+      <div class="params-grid">${params}</div>
+    </div>`;
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('overlay')) closePanel();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+</script>
+</body>
+</html>
