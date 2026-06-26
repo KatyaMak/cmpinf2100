@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>M08 — map · apply · vectorized</title>
+<title>M07 — map · apply · vectorized</title>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -455,7 +455,7 @@ df.apply(lambda row: row['a'] + row['b'],
     <strong style="color: #5A3880;">Naming collision.</strong> Python has a built-in <code>map()</code>. Pandas has its own <code>.map()</code> method on a Series. Same name — completely different things.
   </div>
 
-  <div class="struct-grid" style="margin-top: 14px;">
+  <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 14px;">
     <div class="struct-card">
       <h4>Python's built-in map()</h4>
       <div class="pill">Built-in Python</div>
@@ -479,10 +479,19 @@ list(map(lambda x: x * 2, nums))
         A method that lives <em>on a pandas Series</em>. Only works on a single column.
         Can take a function, a dictionary, or another Series as input.
       </div>
-      <pre style="margin-top: 10px;">df_2["Team_with_acronym"] = df_2.Team.map(append_abbreviation)
-# df_2.Team is a Series
-# .map() belongs to that Series
-# Applies append_abbreviation to each element</pre>
+      <pre style="margin-top: 10px; overflow-x: auto; white-space: pre-wrap; word-break: break-all;"># A function that adds a country code to a city name
+def add_code(city):
+    codes = {"Paris": "FR", "Berlin": "DE", "Rome": "IT"}
+    return f"{city} ({codes.get(city, '?')})"
+
+df["city_with_code"] = df["city"].map(add_code)
+# df["city"] is a Series — .map() belongs to it
+# Applies add_code to each element → "Paris (FR)"
+
+# Also accepts a plain dictionary:
+df["city_with_code"] = df["city"].map(
+    {"Paris": "Paris (FR)", "Berlin": "Berlin (DE)"}
+)</pre>
       <div style="font-size: 0.85rem; color: var(--muted); font-style: italic; margin-top: 6px;">
         You call it as <code>series.map(function)</code> — dot notation, on the column
       </div>
@@ -499,8 +508,8 @@ list(map(lambda x: x * 2, nums))
   </table>
 
   <div class="note">
-    <strong>In your lab:</strong> <code>df_2.Team.map(append_abbreviation)</code> — this is <em>pandas</em> <code>.map()</code>, not Python's <code>map()</code>.
-    <code>df_2.Team</code> is a Series, and <code>.map()</code> is a method on that Series.
+    <strong>The naming collision in practice:</strong> <code>df["city"].map(add_code)</code> — this is <em>pandas</em> <code>.map()</code>, not Python's <code>map()</code>.
+    <code>df["city"]</code> is a Series, and <code>.map()</code> is a method on that Series.
     The fact that both are called "map" is genuinely confusing. The key: if you see dot notation on a column — <code>series.map()</code> — it's pandas. If you see it as a standalone function — <code>map(fn, list)</code> — it's Python.
   </div>
 
@@ -705,15 +714,20 @@ result = arr * 2   # → array([2, 4, 6, 8])
     </div>
 
     <div class="struct-card">
-      <h4>Conditional logic → apply</h4>
+      <h4>Conditional logic — apply or vectorize?</h4>
       <div style="font-size: 0.92rem;">
-        When each row's result depends on multiple conditions or columns, NumPy can't batch it.
+        Simple conditionals on a single column <em>can</em> be vectorized via <code>np.where</code>.
+        <code>apply</code> is for <em>arbitrary</em> row logic — when the function is too complex to express as a NumPy operation.
       </div>
-      <pre style="margin-top: 10px;">df.apply(
-  lambda r: 'high'
-    if r['score'] > 80
-    else 'low', axis=1)</pre>
-      <div class="pill red">needs apply</div>
+      <pre style="margin-top: 10px;"># apply — works, but slow (Python loop)
+df.apply(
+  lambda r: 'high' if r['score'] > 80
+  else 'low', axis=1)
+
+# np.where — same result, one C trip
+import numpy as np
+np.where(df['score'] > 80, 'high', 'low')</pre>
+      <div class="pill stone">prefer np.where for simple cases</div>
     </div>
   </div>
 
@@ -796,8 +810,31 @@ df.select_dtypes("object")
 
   <div class="note">
     <strong>The sequence matters:</strong> <code>select_dtypes</code> first, then <code>apply</code>. 
-    If you ran <code>apply</code> on the full DataFrame including the driver name column, your function would receive strings alongside numbers and likely break. 
+    If you ran <code>apply</code> on the full DataFrame including the driver name column, your function would receive strings alongside numbers and give the wrong answer (or break). 
     <code>select_dtypes</code> is a deliberate act of knowing your data structure — keeping only the columns stored as NumPy arrays before you iterate over them.
+  </div>
+
+  <div class="card" style="border-left: 3px solid #90C090; background: #EBF5EB;">
+    <strong style="color: #285028;">✓ But wait — this example is actually vectorizable</strong><br><br>
+    The <code>count_races</code> pattern above (count non-NaN values per row) is the textbook case where <code>apply(axis=1)</code> is often taught — but NumPy already has a built-in that does it in one C trip:
+    <pre style="margin-top: 10px;">import numpy as np
+
+# apply version — Python loop, one call per row
+df.select_dtypes("number").apply(count_races, axis=1)
+# → [2, 2, 2]   ← correct, but slow at scale
+
+# vectorized equivalent — one trip to C
+df.select_dtypes("number").notna().sum(axis=1)
+# → [2, 2, 2]   ← identical result, ~600× faster at 500k rows
+
+# alternative
+df.select_dtypes("number").count(axis=1)
+# → [2, 2, 2]   ← same thing, even more direct</pre>
+    <div style="margin-top: 10px; font-size: 0.9rem; color: #285028;">
+      <strong>Habit to build:</strong> before writing <code>apply(axis=1)</code>, ask — does pandas or NumPy already have a method for this? 
+      <code>.sum()</code>, <code>.count()</code>, <code>.mean()</code>, <code>.max()</code>, <code>np.where()</code> cover a surprising number of cases. 
+      <code>apply(axis=1)</code> is for logic that genuinely has no built-in equivalent.
+    </div>
   </div>
 
 </div>
@@ -834,7 +871,7 @@ df.select_dtypes("object")
     <tr>
       <td>Complex conditional logic per row</td>
       <td class="mid"><code>.apply()</code></td>
-      <td>Can't vectorize conditional branching</td>
+      <td>Many conditionals vectorize via <code>np.where</code>; use apply for <em>arbitrary</em> row logic</td>
     </tr>
     <tr>
       <td>String cleaning, text operations</td>
